@@ -460,21 +460,20 @@ Note that  \inpyth{Alltoall} requires two work arrays as placeholders, one for e
 
 \begin{figure}[t!]
 \subfigure[Physical mesh]{
-  \includegraphics[scale=0.4]{SlabReal.png}
+  \includegraphics[scale=0.2]{slabZ1.png}
   \label{subfig0}
   }
 \subfigure[Wavenumber mesh after real transform]{
-  \includegraphics[scale=0.4]{SlabReal2.png}
+  \includegraphics[scale=0.2]{slabZ2.png}
   \label{subfig1}
 }
 \subfigure[Final wavenumber mesh.]{
-  \includegraphics[scale=0.4]{SlabComplex.png}
+  \includegraphics[scale=0.2]{slabZ3.png}
   \label{subfig2}
   }
-\caption{Slab decomposition of physical \subref{subfig0} and wavenumber meshes \subref{subfig1}, \subref{subfig2}. }
+\caption{Slab decomposition of physical mesh \subref{subfig0}, intermediate wavenumber mesh \subref{subfig1}, and final wavenumber mesh \subref{subfig2}.  }
 \label{fig:Slabdecomp}
 \end{figure}
-
 
 \subsection{2D Pencil decomposition}
 \label{pencil2D}
@@ -497,37 +496,37 @@ N2 = N/P2
 
 # Create two communicator groups for each rank
 commxz = comm.Split(rank%P1)
-commxy = comm.Split(rank/P1)
+commyz = comm.Split(rank/P1)
 
-xyrank = commxy.Get_rank() # Local rank in xy-plane
+yzrank = commyz.Get_rank() # Local rank in yz-plane
 xzrank = commxz.Get_rank() # Local rank in xz-plane
 
 # Create the decomposed physical mesh X
 x = linspace(0, L, N+1).astype(float)[:-1]
-x1 = slice(xyrank * N1, (xyrank+1) * N1, 1)
+x1 = slice(yzrank * N1, (yzrank+1) * N1, 1)
 x2 = slice(xzrank * N2, (xzrank+1) * N2, 1)
-X = array(meshgrid(x[x1], x, x[x2], indexing='ij'), dtype=float)
+X = array(meshgrid(x[x1], x[x2], x, indexing='ij'), dtype=float)
 \end{python}
 With reference to Fig. \ref{fig:Pencildecomp}, the two communicator groups for CPU with global rank 0 is \inpyth{commxy} = [0, 1] and \inpyth{commxz} = [0, 2].
 
 \begin{figure}
 \subfigure[Physical mesh]{
-  \includegraphics[scale=0.44]{Pencil1.png}
+  \includegraphics[scale=0.22]{pencil0.png}
   \label{subfig0}
   }
 \subfigure[Wavenumber mesh after real transform]{
-  \includegraphics[scale=0.44]{Pencil2.png}
+  \includegraphics[scale=0.22]{pencil1.png}
   \label{subfig1}
 }
 \subfigure[Intermediate wavenumber mesh]{
-  \includegraphics[scale=0.44]{Pencil3.png}
+  \includegraphics[scale=0.22]{pencil3.png}
   \label{subfig2}
   }
 \subfigure[Final wavenumber mesh.]{
-  \includegraphics[scale=0.44]{Pencil4.png}
+  \includegraphics[scale=0.22]{pencil2.png}
   \label{subfig3}
   }
-\caption{2D pencil decomposition of physical mesh \subref{subfig0} and the three wavenumber meshes \subref{subfig1}, \subref{subfig2}, \subref{subfig3}. The decomposition shown uses 4 CPUs, two in each direction normal to the direction of the current one-dimensional FFT. The FFT in the y-direction transforms data in \subref{subfig0} to \subref{subfig1}. The data is then transformed and communicated to the composition seen in \subref{subfig2}. Here the FFT in $x$-direction is carried out before the data is transformed again and communicated to \subref{subfig3}, where the final FFT is performed.}
+\caption{2D pencil decomposition of physical mesh \subref{subfig0} and the three wavenumber meshes \subref{subfig1}, \subref{subfig2}, \subref{subfig3}. The decomposition shown uses 4 CPUs, two in each direction normal to the direction of the current one-dimensional FFT. The FFT in the z-direction transforms data in \subref{subfig0} to \subref{subfig1}. The data is then transformed and communicated to the composition seen in \subref{subfig2}. Here the FFT in $x$-direction is carried out before the data is transformed again and communicated to \subref{subfig3}, where the final FFT is performed.}
 \label{fig:Pencildecomp}
 \end{figure}
 
