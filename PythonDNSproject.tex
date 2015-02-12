@@ -564,7 +564,35 @@ It is customary for pseudospectral solvers to assume that the Fourier transforms
 \end{equation}
 where $M$ is the number of CPUs. In other words, strong scaling implies CPU time per time step proportional to $1/M$, whereas weak scaling, where $N^3/M$ is kept constant, should ideally show CPU times proportional to $\log_2 N$. A more thorough analysis of scalability factors for a 3D FFT using the pencil domain decomposition has been given by Ayala and Wang \cite{ayala2013}.
 
+\subsection{Dynamic loading of Python}
+Running a Python solver on a supercomputer presents a few challenges. Most importantly, the dynamic loading time of Python, i.e., the time to simply get started, may become unreasonably high. To load Python on the complete 16 racks of SHAHEEN takes approximately 45 minutes. The main reason is that large-scale supercomputers, such as Shaheen, make use of parallel file systems designed to support large distributed loads, where each CPU is writing or reading data independently. With dynamic loading, however, each process attempts to access the same files simultaneously and bottlenecks appear. 
 
+A few solutions to the loading problem are known. The \inpyth{MPI_Import} Python module of Langton \cite{mpi_import} is designed to overload the built in import mechanism of Python such that only one rank (the zero rank) searches the filesystem for a module and then subsequently broadcasts the results to the remaining ranks. A drawback is the Python implementation where several modules \inpyth{(sys, imp, __builtin__,types, mpi4py)} need to be imported through the regular Python import mechanism. A second approach of Langton is to rewrite the regular finders and loaders modules and lets one rank do all the initial work, caching the modules it finds. 
+
+A better solution is provided through the Scalable Python implementation \cite{scalablepython, Enkovaara201117}. Here CPython is modified slightly such that during import operations only a single process performs the actual I/O, and MPI is used for broadcasting the data to other MPI tasks. The solution provided by scalable python is used in this work and as such dynamic loading times are kept very low (approximately 30 seconds for a full rack).
+
+\subsection{Verification}
+To verify our Python based DNS solver we run the Taylor Green test case for a Reynolds number of 1600. This well known test case is used, e.g., by the annual Workshop on High-Order CFD Methods, that provides temporal evolution of reference data (https://www.grc.nasa.gov/wp-content/uploads/sites/22/ C3.3$\_$datafiles.zip) for kinetic energy, energy dissipation and vorticity in the computational domain.
+
+The Taylor Green vortex is initialized as
+\begin{python}
+nu = 1./1600
+dt = 0.0001
+U[0] = sin(X[0])*cos(X[1])*cos(X[2])
+U[1] =-cos(X[0])*sin(X[1])*cos(X[2])
+U[2] = 0 
+\end{python}
+for both the slab and the pencil decomposition. The Reynolds number is fixed at 1600 by setting the viscosity coefficient to 1./1600 and the time step is fixed at 0.0001. We use a real mesh of size $N=512$, since that matches the reference data. A resolution of $512^3$ is reported by by Bratchet \cite{brachet1991direct} to represent a fully resolved DNS.
+
+The code is run on Shaheen using 512 cores. The entire simulation is 20 seconds real time using 200,000 time steps. The simulation takes blah hours and the results are nearly inseparable from the reference solutions.
+
+\subsection{Weak scaling}
+
+\subsection{Strong scaling}
+
+\subsection{Visualization}
+
+\section{Conclusions}
 
 \newpage
 \appendix
