@@ -260,7 +260,6 @@ The time integration of (\ref{eq:NSfinal}) is performed explicitly using a fourt
 We have implemented the pseudo-spectral discretization of the Navier-Stokes equations, as described in the previous section, in high-level Python code. It is strongly remarked that this Python code is not simply a wrapper of a low-level, high-performance flow solver in Fortran, C or C++. The entire code is implemented directly in Python: the mesh, the MPI domain decomposition, and the time integrators. We are only making use of wrappers for FFT, something that is also done by the majority of low-level flow solvers anyway. The current Python implementation may, as such, be used as a working prototype for a complete low-level implementation in Fortran, C or C++.
 
 The Python solver makes extensive use of the \texttt{numpy} and \texttt{mpi4py} packages, but if the \texttt{pyfftw} module has been installed, it will be used to perform the FFT instead of \texttt{numpy.fft}.
-\hpl{With so heavy use of code as part of the text, I found it inconvenient to have it in figures. It's like factorizing out all the equations in the text in separate figures... The code floats around and suddenly the text discusses a code, but the nearby figure with code relates to something two pages back. Now all code is inline.}
 
 \begin{python}
 from numpy import *
@@ -372,8 +371,6 @@ def Curl(a, c):
     return c
 \end{python}
 
-The entire right hand side of (\ref{eq:NSfinal}) is implemented as shown in Fig. \ref{fig:computeRHS}.
-
 The convection term in (\ref{eq:NSfinal}) is dealiased using the 2/3-rule and dealiasing is simply achieved by an elementwise multiplication of a convection matrix \inpyth{dU[3, N, N/2+1, N]} with a matrix \inpyth{dealias[N, N/2+1, N]}, which is zero where the wavenumbers are larger than 2/3 of the Nyquist mode and unity otherwise. Note that the dimensions of \inpyth{dU} and \inpyth{dealias} differ in the first index since \inpyth{dU} contains contributions for all three vector components. However, through automatic broadcasting, \texttt{numpy} realizes that the last three dimensions are the same and as such all three components of \inpyth{dU} (i.e.,  \inpyth{dU[0]}, \inpyth{dU[1]} and  \inpyth{dU[2]}) are multiplied elementwise with the same matrix \inpyth{dealias}.
 
 \begin{python}
@@ -395,16 +392,16 @@ def ComputeRHS(dU, rk):
     dU = Cross(U, curl, dU)
 
     # Dealias the nonlinear convection
-    dU *= dealias*dt
+    dU *= dealias
 
     # Compute pressure (to get actual modified pressure multiply by 1j)
     P_hat[:] = sum(dU*K_over_K2, 0, out=P_hat)
 
-    # Add pressure gradient
+    # Subtract pressure gradient
     dU -= P_hat*K
 
-    # Add viscous term
-    dU -= nu*dt*K2*U_hat
+    # Subtract viscous term
+    dU -= nu*K2*U_hat
 
     return dU
 \end{python}
@@ -420,20 +417,19 @@ while t <= T:
 \subsection{1D Slab decomposition}
 \label{slab1D}
 
-To run the code on several processors using MPI, the data structures need to be split up. The most popular strategy in the litterature is the ``slab'' decomposition, where each CPU is assigned responsibility for a certain number of complete 2D planes (slices). In other words, just one of the three indices $(i,j,k)$ is split up and divided amongst the CPUs. The major drawback of the slab decomposition strategy is that the number of CPUs must be smaller than or equal to $N$ for a cubic mesh of size $N^3$.
+To run the code on several processors using MPI, the mesh and the data structures need to be split up. The most popular strategy in the litterature is the ``slab'' decomposition, where each CPU is assigned responsibility for a certain number of complete 2D planes (slices). In other words, just one of the three indices $(i,j,k)$ is split up and divided amongst the CPUs. The major drawback of the slab decomposition strategy is that the number of CPUs must be smaller than or equal to $N$ for a cubic mesh of size $N^3$. Note that the MPI implementation in FFTW makes use of the slab decomposition strategy, but there is currently no interface from Python to these MPI routines.
 
-The meshes for the slab decomposition are implemented as
+The real and wavenumber meshes for the slab decomposition are implemented as
 
 \begin{python}
 Np = N / num_processes
 X = mgrid[rank*Np:(rank+1)*Np, :N, :N].astype(float)*L/N
-K = array(meshgrid(kx, ky, kz[rank*Np:(rank+1)*Np],
+K = array(meshgrid(kx, ky[rank*Np:(rank+1)*Np], kz, 
                    indexing='ij'), dtype=int)
 \end{python}
-In general, using \inpyth{num_processes} CPUs, each CPU gets responsibility for \inpyth{Np = N/num_processes} slices and the physical mesh is simply decomposed along the first index. The wavenumber mesh, on the other hand, is split along the third direction. The reason for this choice is that the $k_x$ direction is the last direction to be transformed by the three consecutive FFTs and for this operation the data structures need to be aligned in the $k_x$ direction.
+In general, using \inpyth{num_processes} CPUs, each CPU gets responsibility for \inpyth{Np = N/num_processes} slices and the physical mesh is simply decomposed along the first index. The wavenumber mesh, on the other hand, is split along the second index. The reason for this choice is that the $k_y$ direction is the last direction to be transformed by the three consecutive FFTs and for this operation the data structures need to be aligned in the $k_x$ direction.
 
-
-The MPI decomposition is illustrated in Fig. \ref{fig:Slabdecomp} for the case of a physical mesh of size $8^3$ divided among 4 CPUs. Each processor performs a complete two dimensional FFT in both y and z directions on the original real data structure. To do the final transform in the $x$-direction, data must be communicated between all processors. The communication takes place in one single MPI \inpyth{Alltoall} operation and one transform from the data structure in Fig \ref{subfig1} to the one in \ref{subfig2}. The entire 3D parallel FFT may be implemented with 5 lines of Python code:
+The MPI decomposition is illustrated in Fig. \ref{fig:Slabdecomp} for the case of a physical mesh of size $8^3$ divided amongst 4 CPUs. The entire 3D parallel FFT may be implemented with 5 lines of Python code:
 
 \begin{python}
 def fftn_mpi(u, fu):
@@ -441,7 +437,7 @@ def fftn_mpi(u, fu):
     Uc_hatT[:] = rfft2(u, axes=(2,1))
     for i in range(num_processes):
         U_mpi[i] = Uc_hatT[:, :, i*Np:(i+1)*Np]
-    comm.Alltoall([U_mpi, MPI.DOUBLE_COMPLEX], [fu, MPI.DOUBLE_COMPLEX])
+    comm.Alltoall([U_mpi, mpitype], [fu, mpitype])
     fu[:] = fft(fu, axis=0)
     return fu
 
@@ -455,21 +451,23 @@ def ifftn_mpi(fu, u):
     u[:] = irfft2(Uc_hatT, axes=(2,1))
     return u
 \end{python}
-Three global pre-allocated complex work arrays are needed: \inpyth{Uc_hatT[Np, N/2+1, N]}, \inpyth{Uc_hatT[N, N/2+1, Np]} and \inpyth{Uc_mpi[N, N/2+1, Np]}.
-Note that  \inpyth{Alltoall} requires two work arrays as placeholders, one for each of the data structures seen in Fig \ref{fig:Slabdecomp} (b) and (c). Alternatively, the data transfer may be performed without explicit work arrays using the in-place \inpyth{Sendrecv_replace} along with transpose operations, as shown in alternative versions of these functions in the next section.
+Consider the function \inpyth{fftn_mpi}. In the first call to \inpyth{rfft2} each processor performs a complete two dimensional FFT in both $z$ and $y$ directions on the original real data structure \inpyth{u}. The first transform, in the $z$-direction, is real to complex and the second complex to complex. The real to complex transform reduces the size of the data structure to the one seen in Fig.~\ref{slabsubfig1}. To be able to perform the final transform in the $x$-direction, data must be communicated between all processors. The second index of the data structure ($y$-direction, see Fig.~\ref{slabsubfig2}) will now be shared amongst the processors. The transformation involving \inpyth{U_mpi} and \inpyth{Uc_hatT} performs the transformation from the data structure in Fig. \ref{slabsubfig1} to the one in Fig. \ref{slabsubfig2}. After the transformation the data structures have the correct shape, but they contain the wrong data. The communication of data required for the final transform takes place in one single MPI \inpyth{Alltoall} operation, where the \inpyth{mpitype} is a placeholder for \inpyth{MPI.F_DOUBLE_COMPLEX} or \inpyth{MPI.F_FLOAT_COMPLEX} depending on settings. After this communication the data is lined up for the final FFT in the $x$-direction. The \inpyth{ifftn_mpi} routine is basically the inverse of the forward transform and it should be straightforward to follow.
+
+Three global pre-allocated complex work arrays are needed: \inpyth{Uc_hatT[Np, N, N/2+1]},  \inpyth{Uc_hat[N, Np, N/2+1]} and \inpyth{U_mpi[num_processes, Np, Np, N/2+1]}.
+Note that  \inpyth{Alltoall} requires two work arrays as placeholders, one for each of the data structures seen in Fig \ref{fig:Slabdecomp} (b) and (c). Alternatively, the data transfer may be performed without explicit work arrays using the in-place \inpyth{Sendrecv_replace} along with transpose operations, as shown in alternative versions of these functions in the appendix.
 
 \begin{figure}[t!]
 \subfigure[Physical mesh]{
   \includegraphics[scale=0.2]{slabZ1.png}
-  \label{subfig0}
+  \label{slabsubfig0}
   }
 \subfigure[Wavenumber mesh after real transform]{
   \includegraphics[scale=0.2]{slabZ2.png}
-  \label{subfig1}
+  \label{slabsubfig1}
 }
 \subfigure[Final wavenumber mesh.]{
   \includegraphics[scale=0.2]{slabZ3.png}
-  \label{subfig2}
+  \label{slabsubfig2}
   }
 \caption{Slab decomposition of physical mesh \subref{subfig0}, intermediate wavenumber mesh \subref{subfig1}, and final wavenumber mesh \subref{subfig2}.  }
 \label{fig:Slabdecomp}
@@ -478,11 +476,9 @@ Note that  \inpyth{Alltoall} requires two work arrays as placeholders, one for e
 \subsection{2D Pencil decomposition}
 \label{pencil2D}
 
-For massively parallel simulations the slab decomposition falls short since the number of CPUs allowed is limited by $N$. Large-scale simulations using up to $N^2$ CPUs commonly employ the 2D pencil decomposition, first suggested by Ding, Ferraro and Gennery in 1995 \cite{Ding95}, is commonly used. Publically available implementations of the 3D parallel FFT that makes use of the pencil decomposition are the Parallel FFT Subroutine Library by \cite{PlimptonFFT}, the P3DFFT library by Pekurovsky \cite{p3dfft, Pekurovsky2012}, the 2DECOMP\&FFT library by Li and Laizet \cite{Li2010} and PFFT by Pippig \cite{Pi13}.
+For massively parallel simulations the slab decomposition falls short since the number of CPUs allowed is limited by $N$. Large-scale simulations using up to $N^2$ CPUs commonly employ the 2D pencil decomposition, first suggested by Ding, Ferraro and Gennery in 1995 \cite{Ding95}. Publically available implementations of the 3D parallel FFT that makes use of the pencil decomposition are the Parallel FFT Subroutine Library by \cite{PlimptonFFT}, the P3DFFT library by Pekurovsky \cite{p3dfft, Pekurovsky2012}, the 2DECOMP\&FFT library by Li and Laizet \cite{Li2010} and PFFT by Pippig \cite{Pi13}.
 
-The 2D pencil decomposition strategy is illustrated in Fig. \ref{fig:Pencildecomp} for a box of size $16^3$, using 4 CPUs. The datastructures are split in the plane normal to the direction where we are performing the 1D FFTs. That is, for the physical mesh in Fig. \ref{fig:Pencildecomp} (a) the $x-z$ plane is split up in a $2\times2$ processor mesh. Each CPU may now perform 64 ($= 8 \times 8$) 1D real FFTs in the $y$-direction on its $8 \times 8 \times 16$ physical mesh. Afterwords, the complex data are laid out as shown in Fig. \ref{fig:Pencildecomp} (b). The second transform takes place in the $x$-direction, and for this to happen, data must be exchanged between processors 0 and 1 as well as 2 and 3. The datastructures must also be transposed to the shape seen in Fig. \ref{fig:Pencildecomp} (c). Each CPU may now perform the 32 ($4 \times 8$) individual 1D FFTs in the $x$-direction. The same procedure is followed to end up with datastructures aligned in the final $z$-direction, see Fig. \ref{fig:Pencildecomp} (d). However, this time processor 0 communicates with processor 2 and likewise 1 with 3.
-
-Evidently, each processor belongs to two different groups of communicators. One for communication in the $x-y$ plane (Fig. \ref{fig:Pencildecomp} (b) to (c)) and one for communication in the $x-z$ plane (Fig \ref{fig:Pencildecomp} (c) to (d)). The MPI communicator groups and the distributed mesh are created in Python as shown below.
+The 2D pencil decomposition strategy is illustrated in Fig. \ref{fig:Pencildecomp} for a box of size $16^3$, using 4 CPUs. The datastructures are split in the plane normal to the direction where we are performing the 1D FFTs. That is, for the physical mesh in Fig. \ref{fig:Pencildecomp} (a) the $x-y$ plane is split up in a $2\times2$ processor mesh. Each CPU may now perform 64 ($= 8 \times 8$) 1D real FFTs in the $z$-direction on its $8 \times 8 \times 16$ physical mesh. Afterwords, the complex data are laid out as shown in Fig. \ref{fig:Pencildecomp} (b). The second transform takes place in the $x$-direction, and for this to happen, data must be exchanged between processors 0 and 1 as well as 2 and 3. The datastructures must also be transformed to the shape seen in Fig. \ref{fig:Pencildecomp} (c). Each CPU may now perform the 32 ($4 \times 8$) individual 1D FFTs in the $x$-direction. The same procedure is followed to end up with datastructures aligned in the final $y$-direction, see Fig. \ref{fig:Pencildecomp} (d). However, this time processor 0 communicates with processor 2 and likewise 1 with 3. Evidently, each processor belongs to two different groups of communicators. One for communication in the $x-z$ plane (Fig. \ref{fig:Pencildecomp} (b) to (c)) and one for communication in the $x-y$ plane (Fig \ref{fig:Pencildecomp} (c) to (d)). The MPI communicator groups and the distributed mesh are created in Python as shown below:
 
 %The Nyquist frequency is neglected for the pencil decomposition because with it the number of wavenumers in the z-direction is odd and not possible to share evenly between an even number of processors. Briefly, there are at least three different solutions to this problem, i) Neglect the Nyquist frequency, ii) Let one processor have responsibility for one more wavenumber than the others, iii) Place the real numbers of the Nyquist frequency in the complex part of the lowest wavenumber (also real) before transforming and communicating. The first strategy requires the least effort by far. The highest frequency (the Nyquist frequency $k=N/2+1$) is often neglected in turbulence simulations because ``this is a coefficient for a Fourier mode that is not carried in the Fourier representation of the solution'' \cite{Lee2013}. 
 
@@ -496,18 +492,17 @@ N2 = N/P2
 
 # Create two communicator groups for each rank
 commxz = comm.Split(rank%P1)
-commyz = comm.Split(rank/P1)
+commxy = comm.Split(rank/P1)
 
-yzrank = commyz.Get_rank() # Local rank in yz-plane
+xyrank = commxy.Get_rank() # Local rank in xy-plane
 xzrank = commxz.Get_rank() # Local rank in xz-plane
 
-# Create the decomposed physical mesh X
-x = linspace(0, L, N+1).astype(float)[:-1]
-x1 = slice(yzrank * N1, (yzrank+1) * N1, 1)
+# Create the physical mesh
+x1 = slice(xyrank * N1, (xyrank+1) * N1, 1)
 x2 = slice(xzrank * N2, (xzrank+1) * N2, 1)
-X = array(meshgrid(x[x1], x[x2], x, indexing='ij'), dtype=float)
+X = mgrid[x1, x2, :N].astype(float)*L/N
 \end{python}
-With reference to Fig. \ref{fig:Pencildecomp}, the two communicator groups for CPU with global rank 0 is \inpyth{commxy} = [0, 1] and \inpyth{commxz} = [0, 2].
+With reference to Fig. \ref{fig:Pencildecomp}, the two communicator groups for CPU with global rank 0 is \inpyth{commxz} = [0, 1] and \inpyth{commxy} = [0, 2].
 
 \begin{figure}
 \subfigure[Physical mesh]{
@@ -526,39 +521,52 @@ With reference to Fig. \ref{fig:Pencildecomp}, the two communicator groups for C
   \includegraphics[scale=0.22]{pencil2.png}
   \label{subfig3}
   }
-\caption{2D pencil decomposition of physical mesh \subref{subfig0} and the three wavenumber meshes \subref{subfig1}, \subref{subfig2}, \subref{subfig3}. The decomposition shown uses 4 CPUs, two in each direction normal to the direction of the current one-dimensional FFT. The FFT in the z-direction transforms data in \subref{subfig0} to \subref{subfig1}. The data is then transformed and communicated to the composition seen in \subref{subfig2}. Here the FFT in $x$-direction is carried out before the data is transformed again and communicated to \subref{subfig3}, where the final FFT is performed.}
+\caption{2D pencil decomposition of physical mesh \subref{subfig0} and the three wavenumber meshes \subref{subfig1}, \subref{subfig2}, \subref{subfig3}. The decomposition shown uses 4 CPUs, two in each direction normal to the direction of the current one-dimensional FFT. The FFT in the z-direction transforms the real data in \subref{subfig0} to the complex data in \subref{subfig1}. The data is then transformed and communicated to the composition seen in \subref{subfig2}. Here the FFT in $x$-direction is carried out before the data is transformed again and communicated to \subref{subfig3}, where the final FFT is performed.}
 \label{fig:Pencildecomp}
 \end{figure}
 
-
 The entire 9 lines of code for the Python implementation of the 3D parallel FFT with the 2D pencil decomposition appear below.
-The work arrays \inpyth{Uc_hat_y, Uc_hat_x, Uc_hat_z} are laid out as seen in Fig. \ref{fig:Pencildecomp} (b), (c) and (d) respectively. The array \inpyth{Uc_hat_xr} is a copy of \inpyth{Uc_hat_x} used only for communication.
+The work arrays \inpyth{Uc_hat_y, Uc_hat_x, Uc_hat_z} are laid out as seen in Fig. \ref{fig:Pencildecomp} (d), (c) and (b) respectively. The array \inpyth{Uc_hat_xr} is a copy of \inpyth{Uc_hat_x} used only for communication. Note that all MPI communications take place with the date aligned in the $x$-direction, as shown in Fig. \ref{fig:Pencildecomp} (c), because this requires no preparation for the Alltoall call. The first index is automatically split up and distributed.
 
 \begin{python}
 def fftn_mpi(u, fu):
-    """Three dimensional FFT using MPI."""
-    # Do FFT in y direction on owned real data u
-    Uc_hat_y[:] = rfft(u, axis=1)
-
-    # Transform to x direction neglecting Nyquist mode
+    """fft in three directions using mpi
+    """    
+    # Do fft in z direction on owned data
+    Uc_hat_z[:] = rfft(u, axis=2)
+    
+    # Transform to x direction neglecting k=N/2 (Nyquist)
     for i in range(P1):
-        Uc_hat_x[i*N1:(i+1)*N1] = Uc_hat_y[:, i*N1/2:(i+1)*N1/2]
-
-    # Communicate and do FFT in x-direction
-    commxy.Alltoall([Uc_hat_x, mpitype], [Uc_hat_xr, mpitype])
-    Uc_hat_x[:] = fft(Uc_hat_xr, axis=0)
-
+        Uc_hat_x[i*N1:(i+1)*N1] = Uc_hat_z[:, :, i*N1/2:(i+1)*N1/2]
+    
+    # Communicate and do fft in x-direction
+    commyz.Alltoall([Uc_hat_x, mpitype], [Uc_hat_xr, mpitype])
+    Uc_hat_x[:] = fft(Uc_hat_xr, axis=0)        
+    
     # Communicate and transform to final z-direction
-    commxz.Alltoall([Uc_hat_x, mpitype], [Uc_hat_xr, mpitype])
-    for i in range(P2):
-        Uc_hat_z[:, :, i*N2:(i+1)*N2] = Uc_hat_xr[i*N2:(i+1)*N2]
-
-    # Do FFT for last direction
-    fu[:] = fft(Uc_hat_z, axis=2)
+    commxz.Alltoall([Uc_hat_x, mpitype], [Uc_hat_xr, mpitype])    
+    for i in range(P2): 
+        Uc_hat_y[:, i*N2:(i+1)*N2] = Uc_hat_xr[i*N2:(i+1)*N2]
+                                   
+    # Do fft for last direction 
+    fu[:] = fft(Uc_hat_y, axis=1)
     return fu
 \end{python}
-Note that data communication is performed when the data are aligned with the $x$-direction (Fig. \ref{fig:Pencildecomp} (c)). Here the datastructure \inpyth{Uc_hat_x} is of shape \inpyth{(N, N1/2, N2)}, where \inpyth{N1=N/P1} and \inpyth{N2=N/P2} and \inpyth{P1} and \inpyth{P2} are the division of processors used for the two split directions. In Fig. \ref{fig:Pencildecomp} \inpyth{P1} = \inpyth{P2} = 2. In the call to \inpyth{Alltoall} the first dimension of \inpyth{Uc_hat_x}, i.e. $N$, is automatically broadcasted such that \inpyth{Uc_hat_x} gets the shape \inpyth{(P1, N1, N1/2, N2)}.
+Note that data communication is performed when the data are aligned with the $x$-direction (Fig. \ref{fig:Pencildecomp} (c)). Here the datastructure \inpyth{Uc_hat_x} is of shape \inpyth{(N, N1/2, N2)}, where \inpyth{N1=N/P1} and \inpyth{N2=N/P2} and \inpyth{P1} and \inpyth{P2} are the division of processors used for the two split directions. In Fig. \ref{fig:Pencildecomp} \inpyth{P1} = \inpyth{P2} = 2. In the call to \inpyth{Alltoall} the first dimension of \inpyth{Uc_hat_x}, i.e. $N$, is automatically broadcasted such that \inpyth{Uc_hat_x} gets the shape \inpyth{(P1, N1, N2, N1/2)}.
 
+\section{Performance}
+Our Python based DNS solver has been tested on SHAHEEN, at the KAUST supercomputing laboratory. The primary computational resource of Shaheen consists of 16 racks of Blue Gene/P. Each rack contains 1024 quad-core, 32-bit, 850 MHz PowerPC compute nodes, for a total of 65,536 compute cores. Each node is equipped with 4GB of system memory, providing a total 64TB of distributed memory across the resource. Blue Gene nodes are interconnected by a three-dimensional point-to-point "torus" network used for general-purpose message-passing and multicast communication. By using many small, low-power, densely packaged chips, Blue Gene/P exceeded the power efficiency of other supercomputers of its generation, and at 371 MFLOPS/W Blue Gene/P installations ranked at or near the top of the Green500 lists in 2007-2008 \cite{top500green}.  Per November 2009, the TOP500 list contained 15 Blue Gene/P installations of 2-racks (2048 nodes, 8192 processor cores, 23.86 TFLOPS Linpack) and larger \cite{top500}.
+
+It is customary for pseudospectral solvers to assume that the Fourier transforms are mainly responsible for the computational cost, and as such CPU time should ideally be scaling like
+
+\begin{equation}
+ \frac{N^3 \log_2 N}{M},
+\end{equation}
+where $M$ is the number of CPUs. In other words, strong scaling implies CPU time per time step proportional to $1/M$, whereas weak scaling, where $N^3/M$ is kept constant, should ideally show CPU times proportional to $\log_2 N$. A more thorough analysis of scalability factors for a 3D FFT using the pencil domain decomposition has been given by Ayala and Wang \cite{ayala2013}.
+
+
+
+\newpage
 \appendix
 
 \begin{python}
@@ -574,7 +582,7 @@ def fftn_mpi(u, fu):
     # Communicate
     for i in range(num_processes):
         if not i == rank:
-            comm.Sendrecv_replace([fu_send[i], MPI.DOUBLE_COMPLEX], i, 0, i, 0)
+            comm.Sendrecv_replace([fu_send[i], mpitype], i, 0, i, 0)
 
     # Align data with final x-direction
     fu_send[:] = fu_send.transpose(0,3,2,1)
@@ -594,8 +602,7 @@ def ifftn_mpi(fu, u):
     # Communicate and transform
     for i in range(num_processes):
        if not i == rank:
-           comm.Sendrecv_replace([Uc_send[i],
-                                 MPI.DOUBLE_COMPLEX], i, 0, i, 0)
+           comm.Sendrecv_replace([Uc_send[i], mpitype], i, 0, i, 0)
        Uc_hatT[:, :, i*Np:(i+1)*Np] = Uc_send[i]
 
     # Do inverse FFT for last two directions, final real
