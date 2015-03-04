@@ -1,0 +1,47 @@
+\usepackage{relsize,fancyvrb,moreverb,epsfig,framed}
+\usepackage{color,listings,pythonhighlight}
+%\usepackage{minted} % requires latex -shell-escape and pygments
+% minted is used for the Minted_Python, Minted_Cpp, etc. environments
+% include minted explicitly in the ptex2tex file: \usepackage{minted}
+
+% Tiago Quintino's adjustment of the listings package:
+\definecolor{darkgreen}{rgb}{0,0.45,0.08}
+\definecolor{darkblue}{rgb}{0,0.08,0.45}
+\definecolor{darkred}{rgb}{0.45,0,0.08}
+\definecolor{sgray}{rgb}{0.97,0.97,0.97}
+\definecolor{dgray}{rgb}{0.8,0.8,0.8}
+\renewcommand{\lstlistlistingname}{List of Code Listings}
+\renewcommand{\lstlistingname}{Code Listing}
+\lstset{language={[ISO]C++}}
+\lstset% general command to set parameter(s)
+{
+    frame=single,
+    framerule=0pt,
+    aboveskip=\medskipamount,
+    belowskip=0pt,
+    tabsize=2,
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=2,
+    numbersep=6pt,
+    escapeinside={(*@}{@*)},
+    mathescape=true,
+    basicstyle=\scriptsize\ttfamily,       % print whole listing small
+    keywordstyle=\color{darkblue}\bfseries,% bold black keywords
+    identifierstyle=\ttfamily,             % nothing happens
+    commentstyle=\color{darkgreen},        % white comments
+    stringstyle=\color{darkred},           % typewriter type for strings
+    showstringspaces=false,                % no special string spaces
+    float=!htbp,
+    backgroundcolor=\color{sgray},
+    captionpos=b,
+    breaklines=true,
+    breakatwhitespace=true
+}
+
+% prints the shadow box
+\lstset{framexleftmargin=0mm,
+        framexrightmargin=0mm,
+        frame=shadowbox,
+        rulesepcolor=\color{dgray}}
+
