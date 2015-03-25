@@ -564,7 +564,7 @@ def fftn_mpi(u, fu):
 \end{python}
 
 \subsection{Optimization}
-The implementation discussed thus far is using no more than numpy/mpi4py, and possibly pyfftw for faster FFTs. The FFTs represent the major computational cost of the solver, but there is also significant cost in all the elementwise operations on the structured numpy arrays required to build the right hand side of the Navier-Stokes equations, see the \inpyth{ComputeRHS} function. The elementwise operations, like multiply and divide, are handled by numpy's universal functions (ufuncs), that are fast because they are implemented in C. However, some of the ufuncs may be inefficient because temporary arrays need to be created, especially for multiple-operator expressions. The most glaring example is the cross product (used in computing convection, see \ref{eq:curl_convection}) that may be computed as
+The implementation discussed thus far is using no more than numpy/mpi4py, and possibly pyfftw for faster FFTs. The FFTs represent the major computational cost of the solver, but there is also significant cost in all the elementwise operations on the structured numpy arrays required to build the right hand side of the Navier-Stokes equations, see the \inpyth{ComputeRHS} function. The elementwise operations, like multiply and divide, are handled by numpy's universal functions (ufuncs), that are fast because they are implemented in C. However, some of the ufuncs may be inefficient because temporary arrays need to be created, especially for multiple-operator expressions. The most glaring example is the cross product (used in computing convection, see \ref{eq:curl_convection}) that is computed most efficiently using numpy as
 \begin{python}
 def cross1(a, b, c):
     """Regular c = a x b"""
@@ -574,11 +574,36 @@ def cross1(a, b, c):
     c[2] = a[0]*b[1]-a[1]*b[0]
     return c
 \end{python}
-Note the commented out numpy ufunc \inpyth{cross}, that works but is very slow. The term \inpyth{a[1]*b[2]-a[2]*b[1]} requires two multiplications and one subtraction. This is implemented by numpy using three separate ufuncs (two \inpyth{multiply}, one \inpyth{subtract}), each with temporary arrays allocated. For the three items in the \inpyth{c} vector, this means that 9 ufuncs are called and the loop over all $N^3$ indices in the mesh is performed 9 times.
+Note the commented out numpy ufunc \inpyth{cross}, that works, but is very slow. The term \inpyth{a[1]*b[2]-a[2]*b[1]} requires two elementwise multiplications and one elementwise subtraction. This is implemented by numpy using three separate ufuncs (two \inpyth{multiply}, one \inpyth{subtract}), each with temporary arrays allocated. For the three items in the \inpyth{c} vector, this means that 9 ufuncs are called and the loop over all $N^3$ indices in the mesh is performed 9 times, which, needless to say, is very inefficient.
 
-For straight-forward comparison, the Python solver with slab decomposition has been used as prototype for a pure C++ implementation (https://github.com/mikaem/ spectralDNS/blob/ master/cpp/spectralDNS.cpp). The only significant difference is that for MPI the incorporated routines from FFTW have been used. Neglecting the MPI implementation and running only in serial for three meshes of size $(32^3, 64^3, 128^3)$, the C++ code runs at (0.0092, 0.083, 0.80) seconds per time step respectively on a MacBook Pro with 2.8 GHz Intel Core i7. In comparison, the pure Python solver runs at (0.013, 0.12, 1.3) seconds and we conclude that the C++ code is approximately 30-40 \% faster. Considering the issue recently discussed with the cross product, we are all in all quite happy with the performance of the Python solver.  And, fortunately, several strategies are possible to enhance performance all the way up to match the low-level compiled C++ solver. 
+For straight-forward comparison, the Python solver with slab decomposition has been used as prototype for a pure C++ implementation (https://github.com/mikaem/ spectralDNS/blob/ master/cpp/spectralDNS.cpp). The only significant difference is that for MPI communication the routines provided by FFTW have been used directly. Neglecting the MPI implementation and running only in serial for three meshes of size $(32^3, 64^3, 128^3)$, the C++ code runs at (0.0092, 0.083, 0.80) seconds per time step respectively on a MacBook Pro with 2.8 GHz Intel Core i7. In comparison, the pure Python solver runs at (0.013, 0.12, 1.3) seconds and we conclude that the C++ code is approximately 30-40 \% faster. Considering the issue recently discussed with the cross product, we are all in all quite happy with the performance of the Python solver.  And, fortunately, several strategies are possible to boost performance. 
 
-The simplest path to optimization is probably to directly apply the Python modules \inpyth{numba} or \inpyth{numexpr}, but, unfortunately, for our solver these modules provide little speed-up. For elementwise code like the cross product, a low-level implementations may be necessary and since the code is written in C-style (with C-ordered arrays) we basically have the choice between \inpyth{scipy.weave} and \inpyth{Cython}. Cython has gained much momentum in recent years and is the obvious choice. Using Cython, the cross product may be implemented in a module called \inpyth{cython_module.pyx} and compiled using regular distutils (see, e.g., http://docs.cython.org /src/reference/compilation.html)
+We have considered four different strategies for speeding up our code: \inpyth{numba}, \inpyth{numexpr}, \inpyth{weave} and \inpyth{Cython}, where the best results have been obtained for \inpyth{numba} and \inpyth{Cython}.  The \inpyth{numba} module uses just in time compilation of functions decorated with a \inpyth{@jit} signature. For efficient speed-up the code must be rewritten using explicit for loops. The advantage is that no compilation or installation is required by the user, the decorator takes care of it all. The downside is that \inpyth{numba} is difficult to install on non-standard platforms like the Blue Gene/P.
+
+\begin{python}
+numba_module.py:
+from numba import jit, int64, int32, uint8
+from numba import float64 as float, complex128 as complex
+
+@jit(float[:,:,:,:](float[:,:,:,:], float[:,:,:,:], float[:,:,:,:]))
+def cross1(a, b, c):
+    """Regular c = a x b"""
+    for i in xrange(a.shape[1]):
+        for j in xrange(a.shape[2]):
+            for k in xrange(a.shape[3]):
+                a0 = a[0,i,j,k]
+                a1 = a[1,i,j,k]
+                a2 = a[2,i,j,k]
+                b0 = b[0,i,j,k]
+                b1 = b[1,i,j,k]
+                b2 = b[2,i,j,k]
+                c[0,i,j,k] = a1*b2 - a2*b1
+                c[1,i,j,k] = a2*b0 - a0*b2
+                c[2,i,j,k] = a0*b1 - a1*b0
+    return c
+\end{python}
+
+Cython has gained much momentum in recent years and is usually the obvious choice for high performance computing. Using Cython, the cross product should be implemented like \inpyth{numba}, by using explicit loops. We create a module called \inpyth{cython_module.pyx} and compile it using regular distutils (see, e.g., http://docs.cython.org /src/reference/compilation.html)
 \begin{python}
 cython_module.pyx:
 #cython: boundscheck=False
@@ -597,18 +622,18 @@ def cython_cross1(np.ndarray[real_t, ndim=4] a,
     for i in xrange(a.shape[1]):
         for j in xrange(a.shape[2]):
             for k in xrange(a.shape[3]):
-                a0 = a[0,i,j,k];
-                a1 = a[1,i,j,k];
-                a2 = a[2,i,j,k];
-                b0 = b[0,i,j,k];
-                b1 = b[1,i,j,k];
-                b2 = b[2,i,j,k];
+                a0 = a[0,i,j,k]
+                a1 = a[1,i,j,k]
+                a2 = a[2,i,j,k]
+                b0 = b[0,i,j,k]
+                b1 = b[1,i,j,k]
+                b2 = b[2,i,j,k]
                 c[0,i,j,k] = a1*b2 - a2*b1
                 c[1,i,j,k] = a2*b0 - a0*b2
                 c[2,i,j,k] = a0*b1 - a1*b0
 
 \end{python}
-Cython generates C code that may be compiled and imported into Python as a regular module. The Cython code for the cross product runs approximately 3 times faster than pure numpy for a mesh of size $128^3$. When Cython is used to compute all elementwise operations that generate the right hand side of the Navier-Stokes equations, then speed-up is approximately 30\% for a mesh of size $128^3$. In other words, with a few quick Cython wrappers we have a Python solver that is comparable in speed to its low-level counterpart. And this solver is scripted and runs in an interactive environment where postprocessing and plotting may be performed from the command line.
+Cython generated modules may then be imported into Python as a regular module. The Cython code for the cross product runs at the same speed as \inpyth{numba} and approximately 3 times faster than pure numpy for a mesh of size $128^3$. When Cython is used to compute all elementwise operations that generate the right hand side of the Navier-Stokes equations, then speed-up is approximately 30\% for a mesh of size $128^3$. In other words, with a few quick Cython wrappers we have a Python solver that is comparable in speed to its low-level counterpart. And this solver is scripted and runs in an interactive environment where postprocessing and plotting may be performed from the command line.
 
 \section{Parallel performance}
 Our Python based DNS solver has been tested on SHAHEEN, at the KAUST Supercomputing Laboratory. The primary computational resource of Shaheen consists of 16 racks of Blue Gene/P. Each rack contains 1024 quad-core, 32-bit, 850 MHz PowerPC compute nodes, for a total of 65,536 compute cores. Each node is equipped with 4GB of system memory, providing a total 64TB of distributed memory across the resource. Blue Gene nodes are interconnected by a three-dimensional point-to-point "torus" network used for general-purpose message-passing and multicast communication. By using many small, low-power, densely packaged chips, Blue Gene/P exceeded the power efficiency of other supercomputers of its generation, and at 371 MFLOPS/W Blue Gene/P installations ranked at or near the top of the Green500 lists in 2007-2008 \cite{top500green}.  Per November 2009, the TOP500 list contained 15 Blue Gene/P installations of 2-racks (2048 nodes, 8192 processor cores, 23.86 TFLOPS Linpack) and larger \cite{top500}.
