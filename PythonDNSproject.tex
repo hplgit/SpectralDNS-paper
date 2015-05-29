@@ -135,9 +135,17 @@ float=!htpb]{#2}}
 \begin{document}
 \maketitle
 \section*{Abstract}
-Direct Numerical Simulations (DNS) of the Navier Stokes equations is a valuable research tool in fluid dynamics. However, there are quite few publicly available codes and, due to heavy number crunching, codes are usually written in low-level languages. In this paper we describe a pure Python pseudo-spectral DNS code that nearly matches the performance of pure C for thousands of processors and billions of unknowns. We also describe an optimized version, using Cython, that is found to match C. 
-The solver is written from scratch in Python, both the mesh, the MPI domain decomposition and 
-temporalintegrators. The solver has been verified and benchmarked on the Shaheen supercomputer at the 
+Direct Numerical Simulations (DNS) of the Navier Stokes equations is an 
+invaluable research tool in fluid dynamics. Still, there are few publicly 
+available research codes and, due to the heavy number crunching implied, 
+available codes are usually written in less than convenient low-level 
+languages. In this paper we describe a pure Python pseudo-spectral DNS code 
+that nearly matches the performance of pure C for thousands of processors 
+and billions of unknowns. We also describe an optimized version, using 
+Cython, that is found to match the speed of C without ever needing to leave 
+the confortable interactive Python environment. The solver is written from 
+scratch in Python, both the mesh, the MPI domain decomposition and the 
+temporal integrators. The solver has been verified and benchmarked on the Shaheen supercomputer at the 
 KAUST supercomputing laboratory and we are able to show very good scaling up to several thousand cores. 
 
 \section{Introduction}
@@ -626,7 +634,7 @@ def fftn_mpi(u, fu):
 \end{python}
 
 \subsection{Optimization}
-The implementation discussed thus far is using no more than numpy/mpi4py, and possibly pyfftw for faster FFTs. The FFTs represent the major computational cost of the solver, but there is also significant cost in all the elementwise operations on the structured numpy arrays required to build the right hand side of the Navier-Stokes equations, see the \inpyth{ComputeRHS} function. The elementwise operations, like multiply and divide, are handled by numpy's universal functions (ufuncs), that are fast because they are implemented in C. However, some of the ufuncs may be inefficient due to temporary arrays that need to be created, especially for multiple-operator expressions. The most glaring example for the current solver is the cross product (used in computing convection, see Eq. (\ref{eq:curl_convection})), which is computed most efficiently though numpy as
+The implementation discussed thus far is using no more than numpy/mpi4py, and possibly pyfftw for faster FFTs. The FFTs represent the major computational cost of the solver, but there is also significant cost in all the elementwise operations on the structured numpy arrays required to build the right hand side of the Navier-Stokes equations, see the \inpyth{ComputeRHS} function. The elementwise operations, like multiply and divide, are handled by numpy's universal functions (ufuncs), that are fast because they are implemented in C. However, some of the ufuncs may be inefficient due to temporary arrays that need to be created, especially for multiple-operator expressions. The most glaring example for the current solver is the cross product (used in computing convection, see Eq. (\ref{eq:curl_convection})), which is computed most straightforward though numpy as
 \begin{python}
 def cross1(a, b, c):
     """Regular c = a x b"""
@@ -638,16 +646,14 @@ def cross1(a, b, c):
 \end{python}
 Note the commented out numpy ufunc \inpyth{cross}, which works, but is very slow. The term \inpyth{a[1]*b[2]-a[2]*b[1]} requires two elementwise multiplications and one elementwise subtraction. This is implemented by numpy using three separate ufuncs (two \inpyth{multiply}, one \inpyth{subtract}), each with temporary arrays allocated. For the three items in the \inpyth{c} vector, this means that 9 ufuncs are called and the loop over all $N^3$ indices in the mesh is performed 9 times, which, needless to say, is very inefficient.
 
-For straight-forward comparison, the Python solver with slab decomposition has been used as prototype for a 
+For straightforward comparison, the Python solver with slab decomposition has been used as prototype for a 
 pure C++ implementation (https://github.com/mikaem/ spectralDNS/blob/ master/cpp/spectralDNS.cpp). The 
-only significant difference is that for MPI communication the routines provided by FFTW have been used 
-directly. Neglecting the MPI implementation and running only in serial for three meshes of size 
-$(32^3, 64^3, 128^3)$, the C++ code runs at (0.0092, 0.083, 0.80) seconds per time step respectively on a 
-MacBook Pro with 2.8 GHz Intel Core i7. In comparison, the pure Python solver runs at (0.013, 0.12, 1.3) 
-seconds and we conclude that the C++ code is approximately 30-40 \% faster. Considering the issue recently 
+only significant difference between the solvers is that for C++ the 3D FFT computations are using the MPI communication routines that are provided directly through the FFTW library. Otherwise, ecerything is exectly the same. For a first direct comparison we are neglecting the MPI implementation and running the Python and C++ codes in serial for three meshes of size 
+$(32^3, 64^3, 128^3)$. On a 
+MacBook Pro with 2.8 GHz Intel Core i7 we find that the C++ code runs at (0.0092, 0.083, 0.80) seconds per time step for the three mesh sizes, whereas the pure Python solver runs at (0.013, 0.12, 1.3) seconds. As such we may conclude that the C++ code is approximately 30-40 \% faster. Considering the issue recently 
 discussed with the cross product, we are all in all quite happy with the performance of the Python solver.  
 
-Fortunately, many different strategies are known for speeding up pure numpy code, e.g.,  \inpyth{numba}, \inpyth{numexpr}, \inpyth{weave} and \inpyth{Cython}. We have obtained best results for \inpyth{numba} and \inpyth{Cython}. The \inpyth{numba} module uses just in time compilation of functions one wishes to optimize. For efficient speed-up on our structured mesh the code must be rewritten using explicit for loops. The advantage of using numba is that no compilation or installation is required by the user. The downside is that \inpyth{numba} is difficult to install on non-standard platforms like the Blue Gene/P. A numba optimized cross product routine may be implemented in module \inpyth{numba_module.py} and code will be generated and compiled when the module is imported.
+Fortunately, many different strategies are known for speeding up pure numpy code, e.g.,  \inpyth{numba}, \inpyth{numexpr}, \inpyth{weave} and \inpyth{Cython}. We have obtained best results for \inpyth{numba} and \inpyth{Cython}. The \inpyth{numba} module uses just in time compilation of Python functions chosen for optimization. The advantage of using numba is that no compilation or installation is required by the user. The downside is that \inpyth{numba} is difficult to install on non-standard platforms like the Blue Gene/P. A numba optimized cross product routine may be implemented in module \inpyth{numba_module.py} and code will be generated and compiled when the module is imported.  For efficient speed-up on our structured mesh the code must be rewritten using explicit for loops. 
 
 \begin{python}
 numba_module.py:
@@ -671,7 +677,7 @@ def cross1(a, b, c):
     return c
 \end{python}
 
-Cython has gained much momentum in recent years and is usually the obvious choice for high performance computing. Using Cython, the cross product should be implemented like \inpyth{numba}, by using explicit for loops. A module called \inpyth{cython_module.pyx} may be created and compiled using regular distutils (see, e.g., http://docs.cython.org /src/reference/compilation.html)
+Cython has gained much momentum in recent years and is usually the obvious choice for high performance computing. Using Cython, the cross product should be implemented like \inpyth{numba}, through explicit for loops. A module called \inpyth{cython_module.pyx} may be created and compiled using regular distutils (see, e.g., http://docs.cython.org /src/reference/compilation.html)
 \begin{python}
 cython_module.pyx:
 #cython: boundscheck=False
@@ -699,7 +705,7 @@ def cross1(np.ndarray[real_t, ndim=4] a,
                 c[2,i,j,k] = a0*b1 - a1*b0
 
 \end{python}
-Cython generated modules may then be imported into Python as a regular module. The Cython code for the cross product runs at the same speed as \inpyth{numba} and approximately 3 times faster than pure numpy for a mesh of size $128^3$. When Cython is used to compute all elementwise operations that generate the right hand side of the Navier-Stokes equations, then speed-up is approximately 25-30\% for a mesh of size $128^3$. In other words, with a few quick Cython wrappers we have a Python solver that is comparable in speed to its low-level counterpart in C++. And this solver is scripted and runs in an interactive environment where postprocessing and plotting may be performed from the command line.
+Cython generated modules may then be imported into Python and used as regular modules. The Cython code for the cross product runs at the same speed as \inpyth{numba} and approximately 3 times faster than pure numpy for a mesh of size $128^3$. When Cython is used to compute all elementwise operations that generate the right hand side of the Navier-Stokes equations, then the speed-up of the single process solve is approximately 25-30\% for a mesh of size $128^3$. In other words, with a few quick Cython wrappers we have a Python solver that is comparable in speed to its low-level counterpart in C++. And this solver is scripted and runs in an interactive environment where postprocessing and plotting may be performed from the command line.
 
 \section{Parallel performance}
 Our Python based DNS solver has been tested on Shaheen, at the KAUST Supercomputing Laboratory. The primary computational resource of Shaheen consists of 16 racks of Blue Gene/P. Each rack contains 1024 quad-core, 32-bit, 850 MHz PowerPC compute nodes, for a total of 65,536 compute cores. Each node is equipped with 4GB of system memory, providing a total 64TB of distributed memory across the resource. Blue Gene nodes are interconnected by a three-dimensional point-to-point "torus" network used for general-purpose message-passing and multicast communication. 
@@ -727,31 +733,37 @@ where the same code is used for both the slab and the pencil decomposition. The 
 
 The non-optimized code is run on Shaheen using the pencil decomposition and 2048 cores. The entire simulation is set for 20 seconds real time, during which the flow undergoes transition, decays and finally fades out. The simulation takes 12 hours alltogether ($12\cdot2048$ CPU hours) and neither the kinetic energy nor the vorticity stray more than 0.01 \% from the reference solutions, even after 20,000 time steps.
 
-\subsection{Scaling}
-The only MPI communication required by the solver is through the 3D FFT routines, or when global results, like the total kinetic energy, are computed. Scaling will be efficient as long as the cost for MPI communication is smaller than all the other elementwise operations required to set up the right hand side of the explicit ODE given by Eq. (\ref{eq:NSfinal}).
+\subsection{Parallel scaling}
+The only MPI communication required by the solver can be found in the 3D 
+FFT routines, or when global results, like the total kinetic energy, are 
+computed. Scaling will be efficient as long as the cost for MPI 
+communication is smaller than all the other elementwise operations required 
+to set up the right hand side of the explicit ODE given by Eq. 
+(\ref{eq:NSfinal}). This is not a trivial task, considering that a pseudo-spectral solver demands that every process needs to send and receive data 
+from all the other processes - at least for the slab decomposition.
 
 It is customary for pseudospectral solvers to assume that the main computational cost is due to Fourier transforms, and as such the CPU time should ideally scale like
 
 \begin{equation}
  \frac{N^3 \log_2 N}{M},
 \end{equation}
-where $M$ is the number of CPUs. In other words, strong scaling implies CPU time per time step proportional to $1/M$, whereas weak scaling, where $N^3/M$ is kept constant, should ideally show CPU times proportional to $\log_2 N$. A more thorough analysis of scalability factors for a 3D FFT using the pencil domain decomposition has been given by Ayala and Wang \cite{ayala2013}.
+where $M$ is the number of CPUs. In other words, strong scaling implies, as usual, CPU time per time step proportional to $1/M$, whereas weak scaling, where $N^3/M$ is kept constant, should ideally show CPU times proportional to $\log_2 N$. A more thorough analysis of scalability factors for a 3D FFT using the pencil domain decomposition has been given by Ayala and Wang \cite{ayala2013}.
 
 
 
 \subsubsection{Weak scaling}
-To verify weak scaling we continue to use the Taylor Green test case and keep the ratio of mesh size to number of processors ($N^3/M$) constant, which ideally should lead to CPU times proportional to $\log_2 N$. 
-Both slab and pencil decompositions are tested using four meshes of size $N=(2^7, 2^8, 2^9, 2^{10}) =(128, 256, 512, 1024)$ and single precision arithmetics. For these meshes the slab decomposition uses $M=(2, 16, 128, 1024)$ number of CPUs and the pencil uses twice as many $M=(4, 32, 256, 2048)$ with $P1=(2, 4, 16, 32)$. 
+To verify weak scaling we continue to use the Taylor Green test case and keep the ratio of mesh size to number of processors ($N^3/M$) constant, which ideally should lead to CPU times proportional to $\log_2 N$. The solver used in this section is not optimized in any way beyond numpy/mpi4py/pyfftw. 
+Both slab and pencil decompositions are tested using four meshes of size $N^3$, where $N=(2^7, 2^8, 2^9, 2^{10}) =(128, 256, 512, 1024)$ and single precision arithmetics (which is also customary for scaling tests of DNS solvers). For these meshes the slab decomposition uses $M=(2, 16, 128, 1024)$ number of CPUs and the pencil uses twice as many $M=(4, 32, 256, 2048)$ with $P1=(2, 4, 16, 32)$. 
 Note that for $N=1024$ the maximum number of CPUs is reached for the slab decomposition, whereas the pencil 
 decomposition may still use many more. The real computing time per time step is measured and the results 
 are scaled by $N^3 \log_2N$ and plotted in Figure \ref{fig:weak_scaling_shaheen}. Slab and pencil results 
 are marked by squares and dots, respectively, the C++ results are shown as diamonds and the solid line 
-corresponds to ideal scaling. Both slab and pencil versions of the Python solver show excellent scaling, 
-and only start to trail off the ideal curve for the largest mesh. The C++ solver is seen to be faster than 
-Python, but scaling is similar. Note that the pencil computations use twice as many cores for the same mesh 
+corresponds to ideal scaling. From Fig. \ref{fig:weak_scaling_shaheen} it is evident that both slab and pencil versions of the Python solver show excellent scaling, 
+and only start to trail off the ideal curve for the largest mesh sizes. The C++ solver is seen to be faster than the pure
+Python solver, but weak scaling is apparently similar. Note that the pencil computations use twice as many cores for the same mesh 
 size as the slab computations. As such the two methods would fall on the same line in 
 Fig.~\ref{fig:weak_scaling_shaheen} if they were equally efficient. The slab decomposition is thus seen to 
-be slightly more efficient than pencil, which is generally in agreement with previous studies (need ref). 
+be more efficient than pencil, which is generally in agreement with previous studies (need ref).
 
 \begin{figure}
 \includegraphics[scale=1]{figs/weak_scaling_shaheen_numpy.png}
@@ -761,7 +773,26 @@ be slightly more efficient than pencil, which is generally in agreement with pre
 
 \subsubsection{Strong scaling}
 \label{sec:strong_scaling}
-Strong scaling over a wide range of processors is usually more challenging than weak, partly because the efficiency of the FFT routines depends on the length of the datastructures and how well they fit into memory. Nevertheless, we have run our pure Python and an optimized Python/Cython code for a computational box of size $512^3$ and plot in Fig. \ref{fig:strong_scaling_shaheen} the computing time per time step, for both the pencil (dots) and slab (squares) decompositions, and for the C++ solver. The number of cores is varied over the entire possible range from 64 to 512 for the slab decomposition (lower limit due to memory), and from 64 to 4096 for the pencil decomposition. The scaling is very good for the optimized versions, both pencil and slab, and speedup is observed throughout the entire range. The pure Python solver achieves good speed-up for relatively low number of cores, but gradually becomes worse for large number of cores. Interestingly, the optimized version of the code is seen to more than match the performance of the C++ solver for this particular case. Note that the C++ and the Python code both use the same FFTW library. However, the Python code only makes use of the serial versions of the FFT routines and performs the MPI communications itself through \inpyth{mpi4py}. From Fig. \ref{fig:strong_scaling_shaheen} it is evident that the C++ and the optimized Python solver (slab P/C) are approximately equally fast for 64 processors, but then the Python code becomes gradually better for larger number of cores. This enhanced performance means that our implementation of the parallel 3D FFT routine, for this particular case at least, is faster than the one provided through the FFTW library.
+Strong scaling over a wide range of processors is usually more challenging 
+to prove than weak, in our case partly because the efficiency of the FFT routines 
+depends on the length of the datastructures and how well they fit into 
+memory. Nevertheless, we have performed strong scaling tests of our pure Python and optimized 
+Python/Cython code for the Taylor Green test case with a computational box of size $512^3$. In Fig. 
+\ref{fig:strong_scaling_shaheen} we plot the computing time per time step, for both the pencil (circles) and slab decompositions, where the slab results are shown both with (triangles) and without (left pointing triangles) optimization. The effect of Cython is less pronounced on the pencil solver and as such not shown. The number of 
+cores is varied over the entire possible range from 64 to 512 for the slab 
+decomposition (lower limit due to memory), and from 64 to 4096 for the 
+pencil decomposition. The scaling is, quite frankly, excellent for the optimized versions, both pencil (circles) and slab (triangles), and speedup is observed 
+throughout the entire range. The pure Python solver achieves good speed-up 
+for a modest number of cores, but gradually becomes worse for a larger mesh. Interestingly, the optimized version of the code is seen 
+to more than match the performance of the C++ solver for this particular 
+case. In this regard it is interesting to note that the C++ and the Python code both use the same FFTW library. However, the Python code only makes use of the serial versions of the FFTW 
+routines and performs the MPI communications itself through 
+\inpyth{mpi4py}, whereas the C++ code uses the built in MPI communication routines of FFTW. From Fig. \ref{fig:strong_scaling_shaheen} it is evident 
+that the C++ and the optimized Python solver (slab P/C) are approximately 
+equally fast for 64 processors, but from then on the Python code performes 
+gradually better for larger number of cores. This enhanced performance 
+means that our implementation of the parallel 3D FFT routine, for this 
+particular case at least, is actually faster than the one provided through the FFTW library.
 
 An obvious scaling problem for the pure numpy implementation is the transpose operation used in the implementation of the FFTs 
 (see implementation of \inpyth{fftn_mpi}), where a for loop is used over all processes (or over all 
@@ -772,7 +803,7 @@ but when approaching thousands of processors, the loop becomes too slow leading 
 
 \begin{figure}
 \includegraphics[scale=1]{figs/strong_scaling_shaheen_512.png}
-\caption{Strong scaling of pure Python (slab, left pointing triangles) and optimized DNS solvers marked with P/C for Python/Cython. The C++ solver uses slab decomposition and MPI communication is performed through the FFTW library. }
+\caption{Strong scaling of various versions of the DNS solver. The pure Python with slab decomposition is shown with left pointing triangles, and solvers optimized with Cython are for pencil shown with circles and slab with triangles. The C++ solver (downwords pointing triangles) uses slab decomposition and MPI communication is performed through the FFTW library. }
 \label{fig:strong_scaling_shaheen}
 \end{figure}
 
