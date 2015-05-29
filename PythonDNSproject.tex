@@ -134,11 +134,23 @@ float=!htpb]{#2}}
 
 \begin{document}
 \maketitle
-\section{Abstract}
+\section*{Abstract}
+Direct Numerical Simulations (DNS) of the Navier Stokes equations is a valuable research tool in fluid dynamics. However, there are quite few publicly available codes and, due to heavy number crunching, codes are usually written in low-level languages. In this paper we describe a pure Python pseudo-spectral DNS code that nearly matches the performance of pure C for thousands of processors and billions of unknowns. We also describe an optimized version, using Cython, that is found to match C. 
+The solver is written from scratch in Python, both the mesh, the MPI domain decomposition and 
+temporalintegrators. The solver has been verified and benchmarked on the Shaheen supercomputer at the 
+KAUST supercomputing laboratory and we are able to show very good scaling up to several thousand cores. 
 
 \section{Introduction}
 %\subsection{}
-Direct Numerical Simulations (DNS) is a term reserved for computer simulations of turbulent flows that are fully resolved in both time and space. DNS are usually conducted using numerical methods of such high quality that numerical dispersion and diffusion errors are negligible compared to their actual physical counterparts. To this end, DNS has historically been carried out with extremely accurate and efficient spectral methods, and in the fluid dynamics community DNS enjoys  today the same status as carefully conducted experiments. DNS can provide detailed and highly reliable data not possible to extract from experiments, which in recent years have driven a number of discoveries regarding the very nature of turbulence. The present paper presents a new, computationally attractive tool for performing DNS, realized by recent programming technologies.
+Direct Numerical Simulations (DNS) is a term reserved for computer simulations of turbulent flows that are 
+fully resolved in both time and space. DNS are usually conducted using numerical methods of such high 
+quality that numerical dispersion and diffusion errors are negligible compared to their actual physical 
+counterparts. To this end, DNS has historically been carried out with extremely accurate and efficient 
+spectral methods, and in the fluid dynamics community DNS enjoys  today the same status as carefully 
+conducted experiments. DNS can provide detailed and highly reliable data not possible to extract from 
+experiments, which in recent years have driven a number of discoveries regarding the very nature of 
+turbulence. The present paper presents a new, computationally attractive tool for performing DNS, realized 
+by recent programming technologies.
 
 Because of the extremely heavy number crunching implied by DNS,
 researchers aim at highly optimized implementations running on
@@ -200,7 +212,7 @@ to scale well up to 65,000 cores.
 
 The ability of Python to wrap low-level, computationally highly efficient Fortran and C/C++ libraries for various applications is today well known, appreciated, and utilized by many. A lesser known fact is that basic Python modules like \texttt{numpy}, used for linear algebra and array manipulations, and \texttt{mpi4py}, which wraps (nearly) the entire MPI library, may be used directly to develop, from scratch, high performance solvers that run at speeds comparable to the very best implementations in low-level codes. A general misconception seems to be that Python may be used for fast prototyping and post-processing, as MATLAB, but that serious high-performance computing on parallel platforms require reimplementations in Fortran, C or C++. In this paper, we conquer this misconception: The only real requirement for developing a fast pure \texttt{numpy}/\texttt{mpi4py} solver is that all array manipulations are performed using vectorization (that call underlying BLAS or LAPACK backends) such that explicit for loops over long arrays in Python are avoided. The \texttt{mpi4py} module in turn provides a message passing interface for \texttt{numpy} arrays at communication speeds very close to pure C code.
 
-The major objective of this work is to explain a novel implementation of an excellent research tool (DNS) aimed at a wide audience. To this end, we i) show how a complete pseudo-spectral DNS solver can be written from scratch in Python using less than 100 lines of compact, very readable code, and ii) show that these 100 lines of code can run at speeds comparable to its low-level counterpart in hand-written C++ code on thousands of processors. To establish scaling and benchmark results, we have run the codes on SHAHEEN, a massively parallel BlueGene/P machine at the KAUST Supercomputing Laboratory.
+The major objective of this work is to explain a novel implementation of an excellent research tool (DNS) aimed at a wide audience. To this end, we i) show how a complete pseudo-spectral DNS solver can be written from scratch in Python using less than 100 lines of compact, very readable code, and ii) show that these 100 lines of code can run at speeds comparable to its low-level counterpart in hand-written C++ code on thousands of processors. To establish scaling and benchmark results, we have run the codes on Shaheen, a massively parallel BlueGene/P machine at the KAUST Supercomputing Laboratory.
 
 \section{The Navier-Stokes equations in spectral space}
 Our DNS implementation is based on a pseudo-spectral Fourier-Galerkin method \cite{canuto1988} for the spatial discretization. The Navier-Stokes equations are first cast in rotational form
@@ -213,7 +225,7 @@ Our DNS implementation is based on a pseudo-spectral Fourier-Galerkin method \ci
 \end{align}
 where $\bm{u}(\bm{x}, t)$ is the velocity vector, $\bm{\omega}=\nabla \times \bm{u}$ the vorticity vector, $\bm{e}^i$ the Cartesian unit vectors, and the modified pressure $P=p+\bm{u}\cdot \bm{u}/2$, where $p$ is the regular pressure normalized by the constant density. The equations are periodic in all three spatial directions. If all three directions now are discretized uniformely in space using a structured computational mesh with $N$ points in each direction, the mesh points can be represented as
 \begin{equation}
-\bm{x} = \left\{(x_i, x_j, x_k) = \left( \frac{2\pi i}{N}, \frac{2\pi j}{N}, \frac{2\pi k}{N} \right): \, i,j,k \in 0,\ldots, N-1 \right\}.
+\bm{x} = \left\{(x_i, y_j, z_k) = \left( \frac{2\pi i}{N}, \frac{2\pi j}{N}, \frac{2\pi k}{N} \right): \, i,j,k \in 0,\ldots, N-1 \right\}.
 \label{eq:realmesh}
 \end{equation}
 All variables may be transformed from the physical mesh $\bm{x}$ to a discrete and bounded Fourier wavenumber mesh using three-dimensional discrete Fourier transforms. The wavenumber mesh is represented as
@@ -223,15 +235,15 @@ All variables may be transformed from the physical mesh $\bm{x}$ to a discrete a
 \end{equation}
 Each point in the physical mesh will take part in three consecutive transformations, one for each periodic direction. The first transformed direction (arbitrary which one) is real and the remaining two are complex valued. There are in total $N^2$ real transforms of length $N$ and $2(N/2+1)N$ complex transforms of length $N$. The transforms in the three directions are performed sequentially. The first real transform along one line in the $z$-direction reads
 \begin{align}
-\mathcal{F}_{k_z}(\bm{u}) = \hat{\bm{u}}_{k_z}(t) &= \frac{2\pi}{N}\sum_{k=0}^{N-1}{\bm{u}({x}_k, t)}e^{-\imath k_z x_k}, \quad k_z=-N/2+1, \ldots, N/2,
+\mathcal{F}_{k_z}(\bm{u}) = \hat{\bm{u}}_{k_z}(t) &= \frac{2\pi}{N}\sum_{k=0}^{N-1}{\bm{u}({z}_k, t)}e^{-\imath k_z z_k}, \quad k_z=-N/2+1, \ldots, N/2,
 \end{align}
 with the inverse transform
 \begin{align}
-\mathcal{F}^{-1}_{z} (\hat{\bm{u}}) =\bm{u}(x_k, t) &= \frac{1}{2\pi}\sum_{k_z=-N/2+1}^{N/2}\hat{\bm{u}}_{k_z}(t)e^{\imath k_z {x}_k}, \quad k=0, \ldots, N-1.
+\mathcal{F}^{-1}_{z} (\hat{\bm{u}}) =\bm{u}(z_k, t) &= \frac{1}{2\pi}\sum_{k_z=-N/2+1}^{N/2}\hat{\bm{u}}_{k_z}(t)e^{\imath k_z {z}_k}, \quad k=0, \ldots, N-1.
 \end{align}
-Here $\imath=\sqrt{-1}$ is used to represent the imaginary unit.
+Here $\imath=\sqrt{-1}$ is used to represent the imaginary unit. The transform is performed along all $N^2$ lines on the cubic mesh in the $z$-direction. 
 
-The transform is performed along all $N^2$ lines on the cubic mesh in the $z$-direction. To simplify notation, the complete three-dimensional transform for the entire mesh used in this work is denoted as
+A three-dimensional FFT on the structured grid is obtained by taking three consecutive transforms
 \begin{equation}
 \mathcal{F}_{\bm{k}}(\bm{u}) = \hat{\bm{u}}_{\bm{k}}(t) = \mathcal{F}_{k_x}\left(\mathcal{F}_{k_y}\left(\mathcal{F}_{k_z}(\bm{u})\right)\right).
 \label{eq:FourierT3D}
@@ -242,7 +254,7 @@ Note, however, that the order is arbitrary except from the data layout in memory
 \end{equation}
 where the inverse transforms are taken in the opposite order of the forward transforms.
 
-By taking the three-dimensional Fourier transform of the Navier-Stokes equations and subsequently the analythical spatial derivatives in spectral space, we obtain a system of ordinary differential equation for $\hat{\bm{u}}_{\bm{k}}$, and the continuity equation reduces to an orthogonal inner product:
+By taking the three-dimensional Fourier transform of the Navier-Stokes equations and subsequently the analytical spatial derivatives in spectral space, we obtain a system of ordinary differential equation for $\hat{\bm{u}}_{\bm{k}}$, and the continuity equation reduces to an orthogonal inner product:
 \begin{align}
  \frac{d\hat{\bm{u}}_{\bm{k}}}{d t} - \widehat{( \bm{u} \times \bm{\omega})}_{\bm{k}} &= - \nu |\bm{k}|^2  \hat{\bm{u}}_{\bm{k}} - \imath \bm{k} \hat{P}_{\bm{k}}, \label{eq:NSf} \\
  \imath \bm{k} \cdot \hat{\bm{u}}_{\bm{k}} &= 0.
@@ -264,13 +276,13 @@ The time integration of (\ref{eq:NSfinal}) is performed explicitly using a fourt
 
 \section{Implementation}
 
-We have implemented the pseudo-spectral discretization of the Navier-Stokes equations, as described in the previous section, in high-level Python code. It is strongly remarked that this Python code is not simply a wrapper of a low-level, high-performance flow solver written originally in Fortran, C or C++. The entire code is implemented directly in Python: the mesh, the MPI domain decomposition, and the time integrators. We are only making use of wrappers for FFT, something that is also done by the majority of low-level flow solvers anyway. The current Python implementation may, as such, be used as an easy to follow, working prototype for a complete low-level implementation in Fortran, C or C++.
+We have implemented the pseudo-spectral discretization of the Navier-Stokes equations, as described in the previous section, in high-level Python code. A complete solver is shown in the Appendix. It is strongly remarked that this Python code is not simply a wrapper of a low-level, high-performance flow solver written originally in Fortran, C or C++. The entire code is implemented directly in Python: the mesh, the MPI domain decomposition, and the time integrators. We are only making use of wrappers for FFT, something that is also done by the majority of low-level flow solvers anyway. The current Python implementation may, as such, be used as an easy to follow, working prototype for a complete low-level implementation in Fortran, C or C++.
 
 The Python solver makes extensive use of the \texttt{numpy} and \texttt{mpi4py} packages, but if the \texttt{pyfftw} module has been installed, it will be used to perform the FFT instead of \texttt{numpy.fft}. The necessary modules are imported as the very first task of the solver:
 
 \begin{python}
 from numpy import *
-from numpy.fft import fftfreq, fft, ifft, rfft, irfft
+from numpy.fft import fftfreq, fft, ifft, rfft2, irfft2, rfftn, irfftn
 try:
     from mpi.wrappyfftw import *
 except ImportError:
@@ -413,21 +425,21 @@ t = 0        # Physical time
 T = 1.0      # End time
 while t <= T:
     t += dt
-    U_hat = ComputeRHS(dU)*dt
+    U_hat += ComputeRHS(dU)*dt
     for i in range(3):
         U[i] = ifftn_mpi(U_hat[i], U[i])
 
 \end{python}
 Obviously, more advanced integrators may be easily added by modifying the final \inpyth{while} loop. 
 
-The nonlinear convection term in (\ref{eq:NSfinal}) is dealiased using the 2/3-rule and dealiasing is simply achieved by an elementwise multiplication of a convection matrix \inpyth{dU[3, N, N, N/2+1} with a matrix \inpyth{dealias[N, N, N/2+1]}, which is zero where the wavenumbers are larger than 2/3 of the Nyquist mode and unity otherwise. Note that the dimensions of \inpyth{dU} and \inpyth{dealias} differ in the first index since \inpyth{dU} contains contributions from all three vector components. However, through automatic broadcasting, \texttt{numpy} realizes that the last three dimensions are the same and as such all three components of \inpyth{dU} (i.e.,  \inpyth{dU[0]}, \inpyth{dU[1]} and  \inpyth{dU[2]}) are multiplied elementwise with the same matrix \inpyth{dealias}. 
+The nonlinear convection term in (\ref{eq:NSfinal}) is dealiased using the 2/3-rule and dealiasing is simply achieved by an elementwise multiplication of a convection matrix \inpyth{dU[3, N, N, N/2+1} with a matrix \inpyth{dealias[N, N, N/2+1]}, that is zero where the wavenumbers are larger than 2/3 of the Nyquist mode and unity otherwise. Note that the dimensions of \inpyth{dU} and \inpyth{dealias} differ in the first index since \inpyth{dU} contains contributions from all three vector components. However, through automatic broadcasting, \texttt{numpy} realizes that the last three dimensions are the same and as such all three components of \inpyth{dU} (i.e.,  \inpyth{dU[0]}, \inpyth{dU[1]} and  \inpyth{dU[2]}) are multiplied elementwise with the same matrix \inpyth{dealias}. 
 
 \subsection{1D Slab decomposition}
 \label{slab1D}
 
 To run the code on several processors using MPI, the mesh and the data structures need to be split up. The most popular strategy in the litterature is the ``slab'' decomposition, where each CPU is assigned responsibility for a certain number of complete 2D planes (slices). In other words, just one of the three indices $(i,j,k)$ is split up and divided amongst the CPUs. The major drawback of the slab decomposition strategy is that the number of CPUs must be smaller than or equal to $N$ for a cubic mesh of size $N^3$. The MPI implementation in FFTW makes use of the slab decomposition strategy, but there is currently no interface from Python to these MPI routines.
 
-The real and wavenumber meshes for the slab decomposition are implemented through a slight modification of the serial code:
+The decomposed physical and wavenumber meshes for the slab decomposition are implemented through a slight modification of the serial code:
 
 \begin{python}
 Np = N / num_processes
@@ -614,7 +626,7 @@ def fftn_mpi(u, fu):
 \end{python}
 
 \subsection{Optimization}
-The implementation discussed thus far is using no more than numpy/mpi4py, and possibly pyfftw for faster FFTs. The FFTs represent the major computational cost of the solver, but there is also significant cost in all the elementwise operations on the structured numpy arrays required to build the right hand side of the Navier-Stokes equations, see the \inpyth{ComputeRHS} function. The elementwise operations, like multiply and divide, are handled by numpy's universal functions (ufuncs), that are fast because they are implemented in C. However, some of the ufuncs may be inefficient because temporary arrays need to be created, especially for multiple-operator expressions. The most glaring example is the cross product (used in computing convection, see Eq. (\ref{eq:curl_convection})), which is computed most efficiently though numpy as
+The implementation discussed thus far is using no more than numpy/mpi4py, and possibly pyfftw for faster FFTs. The FFTs represent the major computational cost of the solver, but there is also significant cost in all the elementwise operations on the structured numpy arrays required to build the right hand side of the Navier-Stokes equations, see the \inpyth{ComputeRHS} function. The elementwise operations, like multiply and divide, are handled by numpy's universal functions (ufuncs), that are fast because they are implemented in C. However, some of the ufuncs may be inefficient due to temporary arrays that need to be created, especially for multiple-operator expressions. The most glaring example for the current solver is the cross product (used in computing convection, see Eq. (\ref{eq:curl_convection})), which is computed most efficiently though numpy as
 \begin{python}
 def cross1(a, b, c):
     """Regular c = a x b"""
@@ -696,12 +708,12 @@ Our Python based DNS solver has been tested on Shaheen, at the KAUST Supercomput
 \subsection{Dynamic loading of Python}
 Running a Python solver on a supercomputer presents a few challenges. Most importantly, the dynamic loading time of Python, i.e., the time to simply get started, may become unreasonably high. To load Python with numpy on the complete 16 racks of Shaheen takes approximately 45 minutes. The main reason is that large-scale supercomputers, such as Shaheen, make use of parallel file systems designed to support large distributed loads, where each CPU is writing or reading data independently. With dynamic loading, however, each process attempts to access the same files simultaneously and bottlenecks appear. 
 
-A few solutions to the loading problem are known. The \inpyth{MPI_Import} Python module of Langton \cite{mpi_import} is designed to overload the built in import mechanism of Python such that only one rank (the zero rank) searches the filesystem for a module and then subsequently broadcasts the results to the remaining ranks. A drawback is the Python implementation where several modules \inpyth{(sys, imp, __builtin__,types, mpi4py)} need to be imported through the regular Python import mechanism. A second approach of Langton is to rewrite the regular finders and loaders modules such that one rank do all the initial work, caching the modules it finds. 
+A few solutions to the loading problem are known. The \inpyth{MPI_Import} Python module of Langton \cite{mpi_import} is designed to overload the built in import mechanism of Python such that only one rank (the zero rank) searches the filesystem for a module and then subsequently broadcasts the results to the remaining ranks. A drawback is the Python implementation where several modules (e.g., \inpyth{sys, imp, __builtin__,types, mpi4py}) need to be imported through the regular Python import mechanism. A second approach of Langton is to rewrite the regular finders and loaders modules such that one rank do all the initial work, caching the modules it finds. 
 
 A better solution is provided through the Scalable Python implementation \cite{scalablepython, Enkovaara201117}. Here CPython is modified slightly such that during import operations only a single process performs the actual I/O, and MPI is used for broadcasting the data to other MPI ranks. The solution provided by scalable python is used in this work and as such dynamic loading times are kept very low (approximately 30 seconds for a full rack).
 
 \subsection{Verification}
-To verify our Python based DNS solver we run the Taylor Green test case for a Reynolds number of 1600. This is a well known test case used, e.g., by the annual Workshop on High-Order CFD Methods, that provides temporal evolution of reference data (https://www.grc.nasa.gov/wp-content/uploads/sites/22/ C3.3$\_$datafiles.zip) for kinetic energy, energy dissipation and vorticity integrated over the computational domain. The Taylor Green test case at Re=1600 starts out as laminar with only one single length scale, and then through a series of complex flow patterns a fully developed, decaying, turbulent flow is obtained. The Taylor Green vortex is initialized as
+To verify the implementation of our Python based DNS solver we run the Taylor Green test case for a Reynolds number of 1600. This is a well known test case used, e.g., by the annual Workshop on High-Order CFD Methods, that provides temporal evolution of reference data\footnote{https://www.grc.nasa.gov/wp-content/uploads/sites/22/ C3.3$\_$datafiles.zip} for kinetic energy, energy dissipation and vorticity integrated over the computational domain. The Taylor Green test case at Re=1600 starts out as laminar with only one single length scale, and then through a series of complex flow patterns a fully developed, decaying, turbulent flow is obtained. The Taylor Green vortex is initialized as
 \begin{python}
 nu = 1./1600
 dt = 0.001
@@ -741,30 +753,32 @@ size as the slab computations. As such the two methods would fall on the same li
 Fig.~\ref{fig:weak_scaling_shaheen} if they were equally efficient. The slab decomposition is thus seen to 
 be slightly more efficient than pencil, which is generally in agreement with previous studies (need ref). 
 
-An obvious scaling problem for the pure numpy implementation is the transpose operation used in the FFTs 
-(see implementation of \inpyth{fftn_mp i}), where a for loop is used over all processes (or over all 
-processes in a group for pencil decomposition) to rearrange data. The for loops are inefficient in Python 
-and should be avoided. For relatively small numbers of processors the cost of this for loop is negligible, 
-but when reaching thousands of processors, the loop becomes too slow leading to poor scaling. When the for 
-loop is moved to Cython, better weak scaling is observed also for highest number of cores shown in Figure 
-\ref{fig:weak_scaling_shaheen}. Results for the optimized Cython version of the code is not shown, but they are found to fall almost on top of the C++ diamonds.
-
 \begin{figure}
 \includegraphics[scale=1]{figs/weak_scaling_shaheen_numpy.png}
-\caption{Weak scaling of pure numpy/mpi4py/pyfftw DNS solver. The slab (squares) decomposition used $4 \cdot 64^3$ nodes per core, whereas the pencil decomposition (dots) used $2 \cdot 64^3 $. The C++ solver uses slab decomposition. The solid line represents ideal scaling.}
+\caption{Weak scaling of pure numpy/mpi4py/pyfftw DNS solver. The slab (squares) decomposition used $4 \cdot 64^3$ nodes per core, whereas the pencil decomposition (dots) used $2 \cdot 64^3 $. The C++ solver uses slab decomposition and MPI communication is performed through the FFTW library. }
 \label{fig:weak_scaling_shaheen}
 \end{figure}
 
 \subsubsection{Strong scaling}
-Strong scaling over a wide range of processors is more challenging than weak.
+\label{sec:strong_scaling}
+Strong scaling over a wide range of processors is usually more challenging than weak, partly because the efficiency of the FFT routines depends on the length of the datastructures and how well they fit into memory. Nevertheless, we have run our pure Python and an optimized Python/Cython code for a computational box of size $512^3$ and plot in Fig. \ref{fig:strong_scaling_shaheen} the computing time per time step, for both the pencil (dots) and slab (squares) decompositions, and for the C++ solver. The number of cores is varied over the entire possible range from 64 to 512 for the slab decomposition (lower limit due to memory), and from 64 to 4096 for the pencil decomposition. The scaling is very good for the optimized versions, both pencil and slab, and speedup is observed throughout the entire range. The pure Python solver achieves good speed-up for relatively low number of cores, but gradually becomes worse for large number of cores. Interestingly, the optimized version of the code is seen to more than match the performance of the C++ solver for this particular case. Note that the C++ and the Python code both use the same FFTW library. However, the Python code only makes use of the serial versions of the FFT routines and performs the MPI communications itself through \inpyth{mpi4py}. From Fig. \ref{fig:strong_scaling_shaheen} it is evident that the C++ and the optimized Python solver (slab P/C) are approximately equally fast for 64 processors, but then the Python code becomes gradually better for larger number of cores. This enhanced performance means that our implementation of the parallel 3D FFT routine, for this particular case at least, is faster than the one provided through the FFTW library.
+
+An obvious scaling problem for the pure numpy implementation is the transpose operation used in the implementation of the FFTs 
+(see implementation of \inpyth{fftn_mpi}), where a for loop is used over all processes (or over all 
+processes in a group for pencil decomposition) to rearrange data. The for loops are inefficient in Python 
+and should be avoided. For relatively small numbers of processors the cost of this for loop is negligible, 
+but when approaching thousands of processors, the loop becomes too slow leading to poor scaling. This for loop is the main reason why the numpy solver performs rather poorly for the largest number of cores seen for the slab solver in Fig. \ref{fig:strong_scaling_shaheen}. 
+
 
 \begin{figure}
 \includegraphics[scale=1]{figs/strong_scaling_shaheen_512.png}
-\caption{Strong scaling of pure numpy/mpi4py/pyfftw DNS solver.}
+\caption{Strong scaling of pure Python (slab, left pointing triangles) and optimized DNS solvers marked with P/C for Python/Cython. The C++ solver uses slab decomposition and MPI communication is performed through the FFTW library. }
 \label{fig:strong_scaling_shaheen}
 \end{figure}
 
 \section{Conclusions}
+
+For the benefit of the fluid mechanics community, in need of accessible highly accurate flow solvers, we have described a parallel Python implementation of an open source pseudo-spectral DNS solver for turbulent flows. The solver is implemented using standard Python modules (numpy, mpi4py) and a very high level of abstraction, using no more than 100 lines of code - nothing more than a script really. We have then discussed an optimization of this solver through the use of Cython. The solver has been verified and benchmarked on the Shaheen supercomputer at the KAUST supercomputing laboratory and we are able to show very good scaling up to several thousand cores with performance matching that of a pure C++ implementation. 
 
 \section*{Acknowledgements}
 M. Mortensen acknowledges support from the 4DSpace Strategic Research Initiative at the University of Oslo. M. Mortensen and H. P. Langtangen also acknowledge support through a Center of Excellence grant from the Research Council of Norway to the Center for Biomedical Computing at Simula Research Laboratory.
@@ -773,6 +787,7 @@ M. Mortensen acknowledges support from the 4DSpace Strategic Research Initiative
 
 \newpage
 \section*{Appendix}
+\label{sec:appendix}
 Below is a complete Python script that solves (\ref{eq:NSfinal}) with slab decomposition and a fourth order Runge Kutta method for the Taylor Green test case. Saved as \inpyth{TG.py} it runs in parallel on 128 processors with command \inpyth{mpirun -np 128 python TG.py}.
 \begin{python}
 from numpy import *
