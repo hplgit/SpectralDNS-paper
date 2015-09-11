@@ -125,39 +125,59 @@ backgroundcolor=\color{gray}
 \newcommand{\includecode}[2][py]{\lstinputlisting[caption=#2,label=list:#2,style=pythonstyle,
 float=!htpb]{#2}}
 
+\usepackage{hyperref}
+\hypersetup{
+    breaklinks=true,
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=black,
+    filecolor=black,
+    %filecolor=blue,
+    pdfmenubar=true,
+    pdftoolbar=true,
+    bookmarksdepth=3   % Uncomment (and tweak) for PDF bookmarks with more levels than the TOC
+    }
+
 \newcommand{\hpl}[1]{({\bf hpl comment:} \emph{#1})}
 \bibliographystyle{plain}
 
 \title{Massively Parallel Python Implementation of a Pseudo-Spectral DNS Code for Turbulent Flow}
-\author{Mikael Mortensen, Hans Petter Langtangen and David Ketcheson}
+\author{Mikael Mortensen\thanks{Department of Mathematics, University of Oslo, and Center for Biomedical Computing, Simula Research Laboratory. Email: \texttt{mikael.mortensen@gmail.com}.} and Hans Petter Langtangen\thanks{Center for Biomedical Computing, Simula Research Laboratory, and Department of Informatics, University of Oslo. Email: \texttt{hpl@simula.no}.}}
 %\date{}							% Activate to display a given date or no date
 
 \begin{document}
 \maketitle
+
+\hpl{I think the pygments coloring of inline Python code (inpyth) looks strange in the text. I suggest switching (redefining inpyth) to plain black verbatim.}
+
 \section*{Abstract}
-Direct Numerical Simulations (DNS) of the Navier Stokes equations is an 
-invaluable research tool in fluid dynamics. Still, there are few publicly 
-available research codes and, due to the heavy number crunching implied, 
-available codes are usually written in less than convenient low-level 
-languages. In this paper we describe a pure Python pseudo-spectral DNS code 
-that nearly matches the performance of pure C for thousands of processors 
-and billions of unknowns. We also describe an optimized version, using 
-Cython, that is found to match the speed of C without ever needing to leave 
-the confortable interactive Python environment. The solver is written from 
-scratch in Python, both the mesh, the MPI domain decomposition and the 
-temporal integrators. The solver has been verified and benchmarked on the Shaheen supercomputer at the 
-KAUST supercomputing laboratory and we are able to show very good scaling up to several thousand cores. 
+Direct Numerical Simulations (DNS) of the Navier Stokes equations is an
+invaluable research tool in fluid dynamics. Still, there are few publicly
+available research codes and, due to the heavy number crunching implied,
+available codes are usually written in low-level
+languages such as C or Fortran.
+In this paper we describe a pure Python pseudo-spectral DNS code
+that nearly matches the performance of pure C for thousands of processors
+and billions of unknowns. We also describe an optimized version, using
+Cython, that is found to match the speed of C without ever needing to leave
+the confortable interactive Python environment. The solver is written from
+scratch in Python, both the mesh, the MPI domain decomposition, and the
+temporal integrators. The solver
+has been verified and benchmarked on the Shaheen supercomputer at the
+KAUST supercomputing laboratory,
+and we are able to show very good scaling up to several thousand cores.
 
 \section{Introduction}
 %\subsection{}
-Direct Numerical Simulations (DNS) is a term reserved for computer simulations of turbulent flows that are 
-fully resolved in both time and space. DNS are usually conducted using numerical methods of such high 
-quality that numerical dispersion and diffusion errors are negligible compared to their actual physical 
-counterparts. To this end, DNS has historically been carried out with extremely accurate and efficient 
-spectral methods, and in the fluid dynamics community DNS enjoys  today the same status as carefully 
-conducted experiments. DNS can provide detailed and highly reliable data not possible to extract from 
-experiments, which in recent years have driven a number of discoveries regarding the very nature of 
-turbulence. The present paper presents a new, computationally attractive tool for performing DNS, realized 
+Direct Numerical Simulations (DNS) is a term reserved for computer simulations of turbulent flows that are
+fully resolved in both time and space. DNS are usually conducted using numerical methods of such high
+quality that numerical dispersion and diffusion errors are negligible compared to their actual physical
+counterparts. To this end, DNS has historically been carried out with extremely accurate and efficient
+spectral methods, and in the fluid dynamics community DNS enjoys  today the same status as carefully
+conducted experiments. DNS can provide detailed and highly reliable data not possible to extract from
+experiments, which in recent years have driven a number of discoveries regarding the very nature of
+turbulence. The present paper presents a new, computationally attractive tool for performing DNS, realized
 by recent programming technologies.
 
 Because of the extremely heavy number crunching implied by DNS,
@@ -165,15 +185,18 @@ researchers aim at highly optimized implementations running on
 massively parallel computing platforms. The largest known DNS
 simulations performed today are using hundreds of billions of degrees
 of freedom. Normally, this demands a need for developing tailored, hand-tuned
-codes in what we here call low-level languages: Fortran, C or C++. Few
+codes in what we here call low-level languages: Fortran, C or C++ (despite
+the possibility for creating high-level abstractions in Fortran 90/2003 and
+C++, the extreme performance demands of DNS codes naturally leads to
+minimalistic use of classes and modules).. Few
 DNS codes are openly available and easily accessible to the public and
 the common fluid mechanics researcher. Some exceptions are hit-3d
 (Fortran90) \cite{hit-3d}, Philofluid (Fortran) \cite{philofluid},
 Tarang (C++) \cite{tarang}, and Turbo (Fortran90)
-\cite{turbo}. However, the user interfaces to these codes are not highly 
-developed and it is both challenging and time consuming for a user to 
-modify or extend the codes to satisfy their own needs. This is usually 
-the nature of low-level codes.
+\cite{turbo}. However, the user interfaces to these codes are not sopthisticated and user-friendly,
+and it is both challenging and time consuming for a user to
+modify or extend the codes to satisfy their own needs. This is usually
+the nature of codes in low-level languages.
 
 It is a clear trend in computational sciences over the last two decades
 that researchers tend to move from low-level languages to high-level languages
@@ -205,7 +228,7 @@ writing longer C++ code and firing up a compiler. For large scale
 applications the devloped Python solvers are usually equally fast as
 their C++ counterparts, because most of the computing time is usually
 spent within the low-level wrapped C++ functions that perform the
-costly linear algebra operations \cite{Mortensen2015}. \hpl{Should add parallel FEniCS numbers.}
+costly linear algebra operations \cite{Mortensen2015}.
 GPAW \cite{gpaw05} is a code devoted
 to electronic structure calculations, written as a combination of
 Python and C. GPAW solvers written in Python have been shown to scale
@@ -251,17 +274,17 @@ where $\hat{u}_{\bm{k}}(t)$ is used to represent the Fourier coefficients, $\ima
 \hat{u}_{\bm{k}}(t) = \hat{{u}}(k_x, k_y, k_z, t) &= \mathcal{F}({u}(\bm{x}, t)) \left[= \mathcal{F}_{k_x} \left(\mathcal{F}_{k_y} \left( \mathcal{F}_{k_z} ({u}) \right) \right) \right], \label{eq:fft}\\
 {u}(\bm{x}, t) = {u}(x, y, z, t) &= \mathcal{F}^{-1}(\hat{{u}}_{\bm{k}}(t)) \left[= \mathcal{F}^{-1}_{z}\left(\mathcal{F}^{-1}_{y}\left(\mathcal{F}^{-1}_{x}(\hat{{u}})\right)\right)\right], \label{eq:ifft}
 \end{align}
-where the indices on $\mathcal{F}$ and $\mathcal{F}^{-1}$ within the square brackets are used to indicate direction of the transform. Both forward and inverse transforms involve three consecutive transformations, one for each periodic direction. The inverse transforms must be computed in the opposite order of the forward transforms, but otherwise the order is arbitrary. The first forward transform (here in the $z$-direction) is real and the remaining two are complex valued, leaving a total of $N^2$ real transforms of length $N$ and $2(N/2+1)N$ complex transforms of length $N$. 
+where the indices on $\mathcal{F}$ and $\mathcal{F}^{-1}$ within the square brackets are used to indicate direction of the transform. Both forward and inverse transforms involve three consecutive transformations, one for each periodic direction. The inverse transforms must be computed in the opposite order of the forward transforms, but otherwise the order is arbitrary. The first forward transform (here in the $z$-direction) is real and the remaining two are complex valued, leaving a total of $N^2$ real transforms of length $N$ and $2(N/2+1)N$ complex transforms of length $N$.
 
 %For completeness, the first real transform in the $z$-direction is defined for all $k_z = -N/2+1, \ldots, N/2$ as
 %\begin{align}
 %\mathcal{F}_{k_z}(\bm{u}(x, y, z, t)) = \hat{\bm{u}}(x, y, k_z, t) &= \frac{2\pi}{N}\sum_{k=0}^{N-1}{\bm{u}(x, y, {z}_k, t)}e^{-\imath k_z z_k},
 %\end{align}
-%with the inverse transform 
+%with the inverse transform
 %\begin{align}
 %\mathcal{F}^{-1}_{z} (\hat{\bm{u}}(x, y, k_z, t) =\bm{u}(x, y, z, t) &= \frac{1}{2\pi}\sum_{n=-N/2+1}^{N/2}\hat{\bm{u}}(x, y, n, t)e^{\imath n z}.
 %\end{align}
-%Here $\imath=\sqrt{-1}$ is used to represent the imaginary unit. 
+%Here $\imath=\sqrt{-1}$ is used to represent the imaginary unit.
 
 The Galerkin spectral method involves taking the inner product of the Navier-Stokes equations with the complex conjugate of the basis functions, i.e., $e^{-\imath \bm{k} \cdot \bm{x}}$, which corresponds to performing a three-dimensional Fourier transform of the Navier-Stokes equations. If we also evaluate the analytical spatial derivatives in spectral space, we obtain a system of ordinary differential equation for $\hat{\bm{u}}_{\bm{k}}$, whereas the continuity equation reduces to an orthogonal inner product. All in all we obtain
 \begin{align}
@@ -282,12 +305,13 @@ Note that the transformed velocity components are coupled through the nonlinear 
 The pseudo-spectral label arises from the treatment of the convective term, which is computed by first transforming the velocity and vorticity to physical space, performing the cross product, and then transforming the vector ${(\bm{u}  \times  \bm{\omega})}$  back to Fourier space. The operation requires 2 inverse transforms (velocity and vorticity) and 1 forward transform for each of the three vector components, 9 all together. This is the only operation that requires MPI communication and it is typically the most computationally extensive part of a pseudo-spectral DNS solver.
 
 The time integration of (\ref{eq:NSfinal}) is performed explicitly using a fourth-order Runge-Kutta method, the Forward Euler method or a second-order Adams-Bashforth method. The details are left out here, but all algorithms simply need a function that returns the right hand side of (\ref{eq:NSfinal}).
+\hpl{A comment on why such explicit integrators work well? Stability is typically governed by $\nu\Delta t < 1$ or so for Forward Euler, but I guess the time step for DNS has to be so small that stability even for Forward Euler is no issue?}
 
 \section{Implementation}
 
-We have implemented the pseudo-spectral discretization of the Navier-Stokes equations, as described in the previous section, in high-level Python code. A complete solver is shown in the Appendix. It is strongly remarked that this Python code is not simply a wrapper of a low-level, high-performance flow solver written originally in Fortran, C or C++. The entire code is implemented directly in Python: the mesh, the solution arrays, the MPI domain decomposition, and the time integrators. We are only making use of wrappers for serial FFT, something that is also done by the majority of low-level flow solvers anyway. The current Python implementation may, as such, be used as an easy to follow, working prototype for a complete low-level implementation in Fortran, C or C++.
+We have implemented the pseudo-spectral discretization of the Navier-Stokes equations, as described in the previous section, in high-level Python code. A complete solver is shown in the Appendix. It is strongly remarked that this Python code is not simply a wrapper of a low-level, high-performance \emph{flow solver} written originally in Fortran, C or C++. The entire code is implemented directly in Python: the mesh, the solution arrays, the MPI domain decomposition, and the time integrators. We are only making use of wrappers for serial FFT, something that is also done by the majority of low-level flow solvers anyway. The current Python implementation may, as such, be used as an easy to follow, working prototype for a complete low-level implementation in Fortran, C or C++.
 
-The Python solver makes extensive use of the \texttt{numpy} and \texttt{mpi4py} packages, but if the \texttt{pyfftw} module has been installed, it will be used to perform the FFT instead of \texttt{numpy.fft}. The necessary modules are imported as the very first task of the solver:
+The Python solver makes extensive use of the \texttt{numpy} and \texttt{mpi4py} packages, but if the \texttt{pyfftw} module has been installed, this module will be used to perform the FFT instead of \texttt{numpy.fft}. The program starts with importing the necessary modules and initializing MPI:
 
 \begin{python}
 from numpy import *
@@ -304,17 +328,17 @@ rank = comm.Get_rank()          # Global rank
 Importing \texttt{MPI} from \texttt{mpi4py} initializes the MPI communicator. Two different strategies, slab and pencil, have been implemented for the MPI parallel domain decomposition. However, since communication only enters the solver through the FFTs (and postprocessing), there is very little difference between a serial code and a parallel one. Therefore, we first present a serial version of the code.
 
 \subsection{Serial version of code}
-The computational mesh is in physical space a structured uniform (periodic) cube $[0, 2\pi]^3$, where each direction is divided into $N$ uniform intervals, where $N=2^M$ for a postive integer $M$. Any different size of the box may be easily implemented through scaling. The mesh according to (\ref{eq:realmesh}) is represented in Python as
+The computational mesh is in physical space a structured uniform (periodic) cube $[0, 2\pi]^3$, where each direction is divided into $N$ uniform intervals, where $N=2^M$ for a postive integer $M$. Any different size of the box may be easily implemented through scaling of the governing equations. The mesh according to (\ref{eq:realmesh}) is represented in Python as
 
 \begin{python}
 M = 6       # The assigned size of the mesh
 N = 2**M    # Actual number of nodes in each direction
-L = 2*pi    # Real size of computational box
+L = 2*pi    # Physical size of computational box
 X = mgrid[:N, :N, :N].astype(float)*L/N
 \end{python}
-The matrix \inpyth{X} has dimensions \inpyth{(3, N, N, N)}. Since the Navier Stokes equations are solved in Fourier space, the physical space is only used to compute the convection plus to do post processing. The mesh \inpyth{X} is typically used for initialization and is otherwise not needed (and may therefore be deleted to save memory). In parallel mode, \inpyth{X} will be split up and divided between the processors.  Note that the solver may be operated in either single or double precision mode, and that \inpyth{float} in our code is a placeholder for either one of the \inpyth{numpy} datatypes \inpyth{float32} or \inpyth{float64}, depending on settings.
+The matrix \inpyth{X} has dimensions \inpyth{(3, N, N, N)}. Since the Navier Stokes equations are solved in Fourier space, the physical space is only used to compute the convection plus to do post processing. The mesh \inpyth{X} is typically used for initialization and is otherwise not needed (and may therefore be deleted to save memory). In parallel mode, \inpyth{X} will be split up and divided between the processors.  Note that the solver may be operated in either single or double precision mode, and that \inpyth{float} in our code is a placeholder for either one of the \texttt{numpy} datatypes \inpyth{float32} or \inpyth{float64} (single or double precision), depending on settings.
 
-The velocity field to be transformed is real, and the discrete Fourier transform of a real sequence has the property that $\hat{u}_k = \hat{{u}}_{N-k}^*$, where $^*$ denotes the complex conjugate. As such, it is sufficient to use $N/2+1$ Fourier coefficients in the first transformed direction, leading to a transformed wavenumber mesh of size $(N/2+1)N^2$. The odd number of wavenumbers does not lead to any issues for the serial version of the code or for the slab decomposition. However, for the pencil decomposition it requires special attention, see Sec. \ref{pencil2D}. 
+The velocity field to be transformed is real, and the discrete Fourier transform of a real sequence has the property that $\hat{\bm{u}}_k = \hat{\bm{u}}_{N-k}^*$, where $^*$ denotes the complex conjugate. As such, it is sufficient to use $N/2+1$ Fourier coefficients in the first transformed direction, leading to a transformed wavenumber mesh of size $(N/2+1)N^2$. The odd number of wavenumbers does not lead to any issues for the serial version of the code or for the slab decomposition. However, for the pencil decomposition it requires special attention, see Section \ref{pencil2D}.
 
 In our code the real transform is taken in the final $z$ direction and the wavenumbers $\bm{k}=(k_x, k_y, k_z)$ stored on the transformed mesh thus has ordering as used by the FFT routines provided by \texttt{numpy.fft} or \texttt{pyfftw}:
 
@@ -333,9 +357,9 @@ K = array(meshgrid(kx, ky, kz, indexing='ij'), dtype=int)
 K2 = sum(K*K, 0, dtype=int)
 K_over_K2 = K.astype(float) / where(K2 == 0, 1, K2).astype(float)
 \end{python}
-where \inpyth{fftfreq(N, 1./N)} is a function imported from \inpyth{numpy.fft} that creates the wavenumbers $(0, \ldots, N/2-1, -N/2, -N/2+1, \ldots, -1)$. The dimesions of the matrices are \inpyth{(3, N, N, N/2+1)} for \texttt{K} and \texttt{K\_over\_K2}, and \inpyth{(N, N, N/2+1)} for \texttt{K2}, and these matrices represent $\bm{k}$, $\bm{k}/|\bm{k}|^2$ and $|\bm{k}|^2$, respectively. The last two matrices are precomputed for efficiency.
+where \inpyth{fftfreq(N, 1./N)} is a function imported from \inpyth{numpy.fft} that creates the wavenumbers $(0, \ldots, N/2-1, -N/2, -N/2+1, \ldots, -1)$. The dimensions of the matrices are \inpyth{(3, N, N, N/2+1)} for \texttt{K} and \texttt{K\_over\_K2}, and \inpyth{(N, N, N/2+1)} for \texttt{K2}, and these matrices represent $\bm{k}$, $\bm{k}/|\bm{k}|^2$ and $|\bm{k}|^2$, respectively. The last two matrices are precomputed for efficiency.
 
-The velocity, curl and pressure are similarily stored in structured (uninitialized) numpy arrays
+The velocity, curl and pressure are similarily stored in structured (uninitialized) \texttt{numpy} arrays
 
 \begin{python}
 U     = empty((3, N, N, N),  dtype=float)
@@ -365,12 +389,13 @@ U = ifftn_mpi(U_hat, U)
 \end{python}
 For high performance, it is key that the Python code relies on \emph{in-place}
 modifications of pre-allocated arrays to avoid unnecessary allocation of
-large temporary arrays (which often arises from basic \texttt{numpy} code).
+large temporary arrays (which often arises from \texttt{numpy} code with basic array arithmetics). \hpl{There is no used of in-place arithmetics or operations in the above code. The point is first illustrated in \texttt{Cross} and \texttt{Curl} and \texttt{ComputeRHS}.}
 Each of the functions above takes the result array (\texttt{U\_hat} or
 \texttt{U}) as argument, fill this array with values and returns the
 array to the calling code. A commonly applied convention in
 Python is to return all result objects from functions as this only involves
 transfer of references and no copying of data.
+\hpl{It seems that the FFI functions just take input and returns a new array (?). In that case, the \texttt{u} object sent to the Python functions gets lost, and the FFT functions creates a new object references by \texttt{u}. The FFT functions would need to get the result array as argument.}
 
 We also remark that the three consecutive transforms performed by \inpyth{rfftn/irfftn} are actually using one real transform along the $z$-direction and two complex transforms in the remaining two directions. Also note that the simple \texttt{numpy/pyfftw} wrapped functions \inpyth{rfftn/irfftn} may only be used in single processor mode, and the MPI implementation is detailed in Sections
 \ref{slab1D} and \ref{pencil2D}.
@@ -401,12 +426,10 @@ def Curl(a, c):
 
 \end{python}
 and the computation of $\widehat{( \bm{u} \times \bm{\omega})}_{\bm{k}}$ is shown below in the Python function \inpyth{ComputeRHS}. The main body of the solver, including a simple Forward Euler integrator, is implemented as:
+\hpl{All the details with \texttt{kmax\_dealias} and \texttt{dealias} were disturbing when explaining the very simple algorithm of the entire solver...so I a moved this part after the main loop together with the explaining paragraph.}
+
 \begin{python}
-# Declare some matrices and parameters
-kmax_dealias = N/3.
-dU = empty((3, N, Nf, N), dtype=complex)  # Holds right-hand side
-dealias = array((abs(K[0]) < kmax_dealias)*(abs(K[1]) < kmax_dealias)*
-                (abs(K[2]) < kmax_dealias), dtype=bool)
+dU = empty((3, N, Nf, N), dtype=complex)  # Holds the right-hand side
 dt = 0.01    # Time step
 nu = 0.001   # Viscosity
 
@@ -439,9 +462,19 @@ while t <= T:
         U[i] = ifftn_mpi(U_hat[i], U[i])
 
 \end{python}
-Obviously, more advanced integrators may be easily added by modifying the final \inpyth{while} loop. 
+Obviously, more advanced and accurate integrators may be easily added by modifying the final \inpyth{while} loop.
 
-The nonlinear convection term in (\ref{eq:NSfinal}) is dealiased using the 2/3-rule and dealiasing is simply achieved by an elementwise multiplication of a convection tensor \inpyth{dU[3, N, N, N/2+1]} with another tensor \inpyth{dealias[N, N, N/2+1]}, that is zero where the wavenumbers are larger than 2/3 of the Nyquist mode and unity otherwise. Note that the dimensions of \inpyth{dU} and \inpyth{dealias} differ in the first index since \inpyth{dU} contains contributions from all three vector components. However, through automatic broadcasting, \texttt{numpy} realizes that the last three dimensions are the same and as such all three components of \inpyth{dU} (i.e.,  \inpyth{dU[0]}, \inpyth{dU[1]} and  \inpyth{dU[2]}) are multiplied elementwise with the same tensor \inpyth{dealias}. 
+The \inpyth{dealias} matrix multiplying inpyth{dU} in the above
+loop deserves a comment.
+The nonlinear convection term in (\ref{eq:NSfinal}) is dealiased using the 2/3-rule and dealiasing is simply achieved by an elementwise multiplication of a convection matrix \inpyth{dU[3, N, N, N/2+1]} with a matrix \inpyth{dealias[N, N, N/2+1]}, that is zero where the wavenumbers are larger than 2/3 of the Nyquist mode and unity otherwise.
+The relevant code reads
+
+\begin{python}
+kmax_dealias = N/3.
+dealias = array((abs(K[0]) < kmax_dealias)*(abs(K[1]) < kmax_dealias)*
+                (abs(K[2]) < kmax_dealias), dtype=bool)
+\end{python}
+Note that the dimensions of \inpyth{dU} and \inpyth{dealias} differ in the first index since \inpyth{dU} contains contributions from all three vector components. However, through automatic broadcasting, \texttt{numpy} realizes that the last three dimensions are the same and as such all three components of \inpyth{dU} (i.e.,  \inpyth{dU[0]}, \inpyth{dU[1]} and  \inpyth{dU[2]}) are multiplied elementwise with the same matrix \inpyth{dealias}.
 
 \subsection{1D Slab decomposition}
 \label{slab1D}
@@ -453,10 +486,10 @@ The decomposed physical and wavenumber meshes for the slab decomposition are imp
 \begin{python}
 Np = N / num_processes
 X = mgrid[rank*Np:(rank+1)*Np, :N, :N].astype(float)*L/N
-K = array(meshgrid(kx, ky[rank*Np:(rank+1)*Np], kz, 
+K = array(meshgrid(kx, ky[rank*Np:(rank+1)*Np], kz,
                    indexing='ij'), dtype=int)
 \end{python}
-In general, using \inpyth{num_processes} CPUs, each CPU gets responsibility for \inpyth{Np = N/num_processes} two-dimensional slices and the physical mesh is simply decomposed along the first index. The wavenumber mesh, on the other hand, is split along the second index. The reason for this choice is that the $k_x$ direction is the last direction to be transformed by the three consecutive FFTs and for this operation the data structures will need to be aligned in planes normal to the $k_y$ direction. This becomes obvious if one considers the MPI decomposition as illustrated in Fig. \ref{fig:Slabdecomp} for the case of a physical mesh of size $8^3$ divided amongst 4 CPUs.
+In general, using \inpyth{num_processes} CPUs, each CPU gets responsibility for \inpyth{Np = N/num_processes} two-dimensional slices and the physical mesh is simply decomposed along the first index. The wavenumber mesh, on the other hand, is split along the second index. The reason for this choice is that the $k_x$ direction is the last direction to be transformed by the three consecutive FFTs and for this operation the data structures will need to be aligned in planes normal to the $k_y$ direction. This becomes obvious if one considers the MPI decomposition as illustrated in Figure~\ref{fig:Slabdecomp} for the case of a physical mesh of size $8^3$ divided amongst 4 CPUs.
 
 The entire 3D parallel FFT may be implemented with preallocation of a work array to do MPI and 5 lines of Python code:
 
@@ -469,7 +502,7 @@ def fftn_mpi(u, fu):
     Uc_hatT = rfft2(u, axes=(1,2))
     for i in range(num_processes): 
         U_mpi[i] = Uc_hatT[:, i*Np:(i+1)*Np]
-    comm.Alltoall([U_mpi, mpitype], [fu, mpitype])    
+    comm.Alltoall([U_mpi, mpitype], [fu, mpitype])
     fu = fft(fu, axis=0)
     return fu
 
@@ -485,18 +518,18 @@ def ifftn_mpi(fu, u):
 \end{python}
 Consider the function \inpyth{fftn_mpi}. In the first call to \inpyth{rfft2} each processor performs a
 complete two dimensional FFT in both $z$ and $y$ directions on the original real data structure \inpyth{u}
-(i.e., the inner $\mathcal{F}_{k_y}(\mathcal{F}_{k_z}(u))$ from (\ref{eq:fft})). 
+(i.e., the inner $\mathcal{F}_{k_y}(\mathcal{F}_{k_z}(u))$ from (\ref{eq:fft})).
 The first transform, in the $z$-direction, is real to complex and the second complex to complex. The real
-to complex transform reduces the size of the data structure to the one seen in Fig.~\ref{slabsubfig1}. 
+to complex transform reduces the size of the data structure to the one seen in Figure~\ref{slabsubfig1}.
 To be able to perform the final transform in the $x$-direction, data must be communicated between all
-processors. The second index of the data structure ($y$-direction, see Fig.~\ref{slabsubfig2}) will now be 
-shared amongst the processors. The \inpyth{for}-loop involving \inpyth{U_mpi} and \inpyth{Uc_hatT} performs 
-the transformation from the data structure in Fig. \ref{slabsubfig1} to the one in Fig. \ref{slabsubfig2}. 
-After the transformation the data structures have the correct shape, but they contain the wrong data. The 
-communication of data required for the final transform takes place in one single MPI \inpyth{Alltoall} 
-operation, where the \inpyth{mpitype} is a placeholder for \inpyth{MPI.F_DOUBLE_COMPLEX} or 
-\inpyth{MPI.F_FLOAT_COMPLEX} depending on settings. After this communication the data structures are lined 
-up for the final FFT in the $x$-direction. The \inpyth{ifftn_mpi} routine is basically the inverse of the 
+processors. The second index of the data structure ($y$-direction, see Figure~\ref{slabsubfig2}) will now be
+shared amongst the processors. The \inpyth{for}-loop involving \inpyth{U_mpi} and \inpyth{Uc_hatT} performs
+the transformation from the data structure in Figure~\ref{slabsubfig1} to the one in Figure~\ref{slabsubfig2}.
+After the transformation the data structures have the correct shape, but they contain the wrong data. The
+communication of data required for the final transform takes place in one single MPI \inpyth{Alltoall}
+operation, where the \inpyth{mpitype} is a placeholder for \inpyth{MPI.F_DOUBLE_COMPLEX} or
+\inpyth{MPI.F_FLOAT_COMPLEX} depending on settings. After this communication the data structures are lined
+up for the final FFT in the $x$-direction. The \inpyth{ifftn_mpi} routine is basically the inverse of the
 forward transform and its implementation should be straightforward to follow.
 
 Only one explicit global pre-allocated complex work array (\inpyth{U_mpi[num_processes, Np, Np, N/2+1]}) is needed for the \inpyth{Alltoall} routine in the three-dimensional FFT. The transform routines of \inpyth{pyfftw} maintain their own work arrays and \inpyth{Uc_hatT} and \inpyth{Uc_hat} above actually point to this internal data storage. Alternatively, the forward data transfer may be 
@@ -542,11 +575,11 @@ For massively parallel simulations the slab decomposition falls short since the 
   \includegraphics[scale=0.15]{pencil2.png}
   \label{subfig3}
   }
-\caption{2D pencil decomposition of physical mesh \subref{subfig0} and the three wavenumber meshes \subref{subfig1}, \subref{subfig2}, \subref{subfig3}. The decomposition shown uses 4 CPUs, two in each direction normal to the direction of the current one-dimensional FFT. The FFT in the z-direction transforms the real data in \subref{subfig0} to the complex data in \subref{subfig1}. The data is then transformed and communicated to the composition seen in \subref{subfig2}. Here the FFT in $x$-direction is carried out before the data is transformed again and communicated to \subref{subfig3}, where the final FFT is performed.}
+\caption{2D pencil decomposition of physical mesh \subref{subfig0} and the three wavenumber meshes \subref{subfig1}, \subref{subfig2}, \subref{subfig3}. The decomposition shown uses 4 CPUs, two in each direction normal to the direction of the current one-dimensional FFT. The FFT in the $z$-direction transforms the real data in \subref{subfig0} to the complex data in \subref{subfig1}. The data is then transformed and communicated to the composition seen in \subref{subfig2}. Here the FFT in $x$-direction is carried out before the data is transformed again and communicated to \subref{subfig3}, where the final FFT is performed.}
 \label{fig:Pencildecomp}
 \end{figure}
 
-The 2D pencil decomposition strategy is illustrated in Fig. \ref{fig:Pencildecomp} for a physical computational box of size $16^3$, using 4 CPUs. The datastructures are split in the plane normal to the direction in which the FFTs are performed. That is, for the physical mesh in Fig. \ref{fig:Pencildecomp} (a) the $x-y$ plane is split up in a $2\times2$ processor mesh. Each CPU may now perform 64 ($= 8 \times 8$) real FFTs of length 16 in the $z$-direction on its own $8 \times 8 \times 16$ physical mesh. Afterwords, the complex data are laid out as shown in Fig. \ref{fig:Pencildecomp} (b). The second transform takes place in the $x$-direction, and for this to happen, data must be exchanged between processors 0 and 1 as well as 2 and 3. The datastructures must also be transformed to the shape seen in Fig. \ref{fig:Pencildecomp} (c). Each CPU may now perform the 32 ($4 \times 8$) individual 1D FFTs in the $x$-direction. The same procedure is followed to end up with datastructures aligned in the final $y$-direction, see Fig. \ref{fig:Pencildecomp} (d). However, this time processor 0 communicates with processor 2 and likewise 1 with 3. Evidently, each processor belongs to two different groups of communicators. One for communication in the $x-z$ plane (Fig. \ref{fig:Pencildecomp} (b) to (c)) and one for communication in the $x-y$ plane (Fig \ref{fig:Pencildecomp} (c) to (d)). The MPI communicator groups and the distributed mesh are created in Python as shown below:
+The 2D pencil decomposition strategy is illustrated in Figure~\ref{fig:Pencildecomp} for a physical computational box of size $16^3$, using 4 CPUs. The datastructures are split in the plane normal to the direction in which the FFTs are performed. That is, for the physical mesh in Figure~\ref{fig:Pencildecomp} (a) the $x-y$ plane is split up in a $2\times2$ processor mesh. Each CPU may now perform 64 ($= 8 \times 8$) real FFTs of length 16 in the $z$-direction on its own $8 \times 8 \times 16$ physical mesh. Afterwords, the complex data are laid out as shown in Figure~\ref{fig:Pencildecomp} (b). The second transform takes place in the $x$-direction, and for this to happen, data must be exchanged between processors 0 and 1 as well as 2 and 3. The datastructures must also be transformed to the shape seen in Figure~\ref{fig:Pencildecomp} (c). Each CPU may now perform the 32 ($4 \times 8$) individual 1D FFTs in the $x$-direction. The same procedure is followed to end up with datastructures aligned in the final $y$-direction, see Figure~\ref{fig:Pencildecomp} (d). However, this time processor 0 communicates with processor 2 and likewise 1 with 3. Evidently, each processor belongs to two different groups of communicators. One for communication in the $x-z$ plane (Figure~\ref{fig:Pencildecomp} (b) to (c)) and one for communication in the $x-y$ plane (Figure~\ref{fig:Pencildecomp} (c) to (d)). The MPI communicator groups and the distributed mesh are created in Python as shown below:
 
 \begin{minipage}{\linewidth}
 \begin{python}
@@ -558,10 +591,10 @@ N2 = N/P2
 # Create two communicator groups
 commxz = comm.Split(rank/P1)
 commxy = comm.Split(rank%P1)
-    
+
 xzrank = commxz.Get_rank() # Local rank in xz-plane
 xyrank = commxy.Get_rank() # Local rank in xy-plane
-    
+
 # Create the decomposed physical mesh
 x1 = slice(xzrank * N1, (xzrank+1) * N1, 1)
 x2 = slice(xyrank * N2, (xyrank+1) * N2, 1)
@@ -573,62 +606,62 @@ k1 = slice(xzrank*N1/2, (xzrank+1)*N1/2, 1)
 K = array(meshgrid(kx[k2], kx, kx[k1], indexing='ij'), dtype=int)
 \end{python}
 \end{minipage}
-With reference to Fig. \ref{fig:Pencildecomp}, the two communicator groups for CPU with global rank 0 is 
-\inpyth{commxz} = [0, 1] and \inpyth{commxy} = [0, 2]. The decomposition contains two parameters, \inpyth{P1} and \inpyth{P2}, that are used to split up the first two indices of the physical mesh. 
-For the case shown \inpyth{P1} may be either 1 or 2, in which case the second parameter \inpyth{P2} 
+With reference to Figure~\ref{fig:Pencildecomp}, the two communicator groups for CPU with global rank 0 is
+\inpyth{commxz} = [0, 1] and \inpyth{commxy} = [0, 2]. The decomposition contains two parameters, \inpyth{P1} and \inpyth{P2}, that are used to split up the first two indices of the physical mesh.
+For the case shown \inpyth{P1} may be either 1 or 2, in which case the second parameter \inpyth{P2}
 is 4 or 2 to arrive at a total of \inpyth{num_processes = P1*P2}.
 
-The entire 9 lines of code for the Python implementation of the 3D parallel FFT with the 2D pencil 
-decomposition appears below in the \inpyth{fftn_mpi} function. The work arrays \inpyth{Uc_hat_y, Uc_hat_x, Uc_hat_z} are laid out as seen in Fig. \ref{fig:Pencildecomp} (d), (c) and (b) respectively. The array 
-\inpyth{Uc_hat_xr} is a copy of \inpyth{Uc_hat_x} used only for communication. Note that all MPI 
-communications take place with the data aligned in the $x$-direction, as shown in Fig. 
-\ref{fig:Pencildecomp} (c), because this requires no preparation for the \inpyth{Alltoall} call. The first 
-index is automatically split up and distributed.  In the call to \inpyth{Alltoall} the first dimension of 
-\inpyth{Uc_hat_x}, i.e. $N$, is automatically broadcasted such that for \inpyth{commxz} \inpyth{Uc_hat_x} 
+The entire 9 lines of code for the Python implementation of the 3D parallel FFT with the 2D pencil
+decomposition appears below in the \inpyth{fftn_mpi} function. The work arrays \inpyth{Uc_hat_y, Uc_hat_x, Uc_hat_z} are laid out as seen in Figure~\ref{fig:Pencildecomp} (d), (c) and (b) respectively. The array
+\inpyth{Uc_hat_xr} is a copy of \inpyth{Uc_hat_x} used only for communication. Note that all MPI
+communications take place with the data aligned in the $x$-direction, as shown in Figure.
+\ref{fig:Pencildecomp} (c), because this requires no preparation for the \inpyth{Alltoall} call. The first
+index is automatically split up and distributed.  In the call to \inpyth{Alltoall} the first dimension of
+\inpyth{Uc_hat_x}, i.e. $N$, is automatically broadcasted such that for \inpyth{commxz} \inpyth{Uc_hat_x}
 gets the shape \inpyth{(P1, N1, N2, N1/2)} and \inpyth{commxy} \inpyth{(P2, N2, N2, N1/2)}.
 
-Note that the Nyquist frequency has been neglected for the pencil decomposition. This is not uncommon in 
-turbulence simulations, because the Nyquist frequency ($k=N/2+1$) ``is a coefficient for a Fourier mode 
-that is not carried in the Fourier representation of the solution'' \cite{Lee2013}.  Another more practical 
-reason is that the number of independent wavenumbers in the z-direction is odd and thus not possible to share evenly 
-between an even number of processors. There are, however, several different solutions to this problem, 
-besides neglecting the Nyquist frequency. One solution is to let one processor have responsibility for one 
-more wavenumber than the others, which leads to slightly poor load balancing (increasingly better for large 
-number of processors). A better choice then is to place the real numbers of the Nyquist frequency in the 
-complex part of the lowest wavenumber (which is also real) before transforming and communicating. This is 
-done by Pekurovsky et.al. \cite{pekurovsky2012} in their P3DFFT code. The approach is quite easily 
-implemented in Python, taking no more than 10 extra lines of code for both the forward and the backward 
-transforms. However, there is additional communication and the computational cost is slightly higher. For 
+Note that the Nyquist frequency has been neglected for the pencil decomposition. This is not uncommon in
+turbulence simulations, because the Nyquist frequency ($k=N/2+1$) ``is a coefficient for a Fourier mode
+that is not carried in the Fourier representation of the solution'' \cite{Lee2013}.  Another more practical
+reason is that the number of independent wavenumbers in the z-direction is odd and thus not possible to share evenly
+between an even number of processors. There are, however, several different solutions to this problem,
+besides neglecting the Nyquist frequency. One solution is to let one processor have responsibility for one
+more wavenumber than the others, which leads to slightly poor load balancing (increasingly better for large
+number of processors). A better choice then is to place the real numbers of the Nyquist frequency in the
+complex part of the lowest wavenumber (which is also real) before transforming and communicating. This is
+done by Pekurovsky et~al. \cite{pekurovsky2012} in their P3DFFT code. The approach is quite easily
+implemented in Python, taking no more than 10 extra lines of code for both the forward and the backward
+transforms. However, there is additional communication and the computational cost is slightly higher. For
 this reason, we have here simply chosen to neglect the Nyquist frequency.
 
 
 \begin{python}
 def fftn_mpi(u, fu):
     """fft in three directions using mpi
-    """    
+    """
     # Do fft in z direction on owned data
     Uc_hat_z[:] = rfft(u, axis=2)
-    
+
     # Transform to x direction neglecting k=N/2 (Nyquist)
     for i in range(P1):
         Uc_hat_x[i*N1:(i+1)*N1] = Uc_hat_z[:, :, i*N1/2:(i+1)*N1/2]
-    
+
     # Communicate and do fft in x-direction
     commxz.Alltoall([Uc_hat_x, mpitype], [Uc_hat_xr, mpitype])
-    Uc_hat_x[:] = fft(Uc_hat_xr, axis=0)        
-    
+    Uc_hat_x[:] = fft(Uc_hat_xr, axis=0)
+
     # Communicate and transform to final z-direction
-    commxy.Alltoall([Uc_hat_x, mpitype], [Uc_hat_xr, mpitype])    
-    for i in range(P2): 
+    commxy.Alltoall([Uc_hat_x, mpitype], [Uc_hat_xr, mpitype])
+    for i in range(P2):
         Uc_hat_y[:, i*N2:(i+1)*N2] = Uc_hat_xr[i*N2:(i+1)*N2]
-                                   
-    # Do fft for last direction 
+
+    # Do fft for last direction
     fu = fft(Uc_hat_y, axis=1)
     return fu
 \end{python}
 
 \subsection{Optimization}
-The implementation discussed thus far is using no more than numpy/mpi4py, and possibly pyfftw for faster FFTs. The FFTs represent the major computational cost of the solver, but there is also significant cost in all the elementwise operations on the structured numpy arrays required to build the right hand side of the Navier-Stokes equations, see the \inpyth{ComputeRHS} function. The elementwise operations, like multiply and divide, are handled by numpy's universal functions (ufuncs), that are fast because they are implemented in C. However, some of the ufuncs may be inefficient due to temporary arrays that need to be created, especially for multiple-operator expressions. The most glaring example for the current solver is the cross product (used in computing convection, see Eq. (\ref{eq:curl_convection})), which is computed most straightforward though numpy as
+The implementation discussed thus far is using no more than \texttt{numpy} and \texttt{mpi4py}, and possibly \texttt{pyfftw} for faster FFTs. The FFTs represent the major computational cost of the solver, but there is also significant cost in all the elementwise operations on the structured \texttt{numpy} arrays required to build the right hand side of the Navier-Stokes equations, see the \inpyth{ComputeRHS} function. The elementwise operations, like multiply and divide, are handled by \texttt{numpy}'s universal functions (ufuncs), which are fast because they are implemented in C. However, some of the ufuncs may be inefficient due to temporary arrays that need to be created, especially for multiple-operator expressions. The most glaring example for the current solver is the cross product (used in computing convection, see Eq. (\ref{eq:curl_convection})), which is computed most straightforward though \texttt{numpy} as
 \begin{python}
 def cross1(a, b, c):
     """Regular c = a x b"""
@@ -638,15 +671,15 @@ def cross1(a, b, c):
     c[2] = a[0]*b[1]-a[1]*b[0]
     return c
 \end{python}
-Note the commented out numpy ufunc \inpyth{cross}, which works, but is very slow. The term \inpyth{a[1]*b[2]-a[2]*b[1]} requires two elementwise multiplications and one elementwise subtraction. This is implemented by numpy using three separate ufuncs (two \inpyth{multiply}, one \inpyth{subtract}), each with temporary arrays allocated. For the three items in the \inpyth{c} vector, this means that 9 ufuncs are called and the loop over all $N^3$ indices in the mesh is performed 9 times, which, needless to say, is very inefficient.
+Note that we have commented out the use of \texttt{numpy}'s \inpyth{cross} function, which works, but is very slow. The term \inpyth{a[1]*b[2]-a[2]*b[1]} requires two elementwise multiplications and one elementwise subtraction. This is implemented by \texttt{numpy} using three separate ufuncs (two \inpyth{multiply}, one \inpyth{subtract}), each with temporary arrays allocated. For the three items in the \inpyth{c} vector, this means that 9 ufuncs are called and the loop over all $N^3$ indices in the mesh is performed 9 times, which, needless to say, is very inefficient.
 
-For straightforward comparison, the Python solver with slab decomposition has been used as prototype for a 
-pure C++ implementation (https://github.com/mikaem/ spectralDNS/blob/ master/cpp/spectralDNS.cpp). The 
-only significant difference between the solvers is that for C++ the 3D FFT computations are using the MPI communication routines that are provided directly through the FFTW library. Otherwise, everything is exectly the same. For a first direct comparison, though, we are neglecting the MPI implementation and running the Python and C++ codes in serial for the Taylor Green test case (see Sec. \ref{sec:verification}) for three meshes of size $(32^3, 64^3, 128^3)$. On a 
-MacBook Pro with 2.8 GHz Intel Core i7 we find that the C++ code runs at (0.0092, 0.083, 0.80) seconds per time step for the three mesh sizes, whereas the pure Python solver runs at (0.013, 0.12, 1.3) seconds. As such we may conclude that the C++ code is approximately 30-40 \% faster. Considering the issue recently 
-discussed with the cross product, we are all in all quite happy with the performance of the Python solver.  
+For straightforward comparison, the Python solver with slab decomposition has been used as prototype for a
+\href{https://github.com/mikaem/spectralDNS/blob/master/cpp/spectralDNS.cpp}{pure C++ implementation}\footnote{\texttt{https://github.com/mikaem/spectralDNS/blob/master/cpp/spectralDNS.cpp}}. The
+only significant difference between the solvers is that for C++, the 3D FFT computations are using the MPI communication routines that are provided directly through the FFTW library. Otherwise, everything is exectly the same. For a first direct comparison, though, we are neglecting the MPI implementation and running the Python and C++ codes in serial for the Taylor Green test case (see Section \ref{sec:verification}) for three meshes of size $(32^3, 64^3, 128^3)$. On a
+MacBook Pro with 2.8 GHz Intel Core i7 we find that the C++ code runs at (0.0092, 0.083, 0.80) seconds per time step for the three mesh sizes, whereas the pure Python solver runs at (0.013, 0.12, 1.3) seconds. As such we may conclude that the C++ code is approximately 30-40 \% faster. Considering the issue recently
+discussed with the cross product, we are all in all quite happy with the performance of the Python solver.
 
-Fortunately, many different strategies are known for speeding up pure numpy code, e.g.,  \inpyth{numba}, \inpyth{numexpr}, \inpyth{weave} and \inpyth{Cython}. We have obtained best results for \inpyth{numba} and \inpyth{Cython}. The \inpyth{numba} module uses just in time compilation of Python functions chosen for optimization. The advantage of using numba is that no compilation or installation is required by the user that never has to leave the Python environment. The downside is that \inpyth{numba} is difficult to install on non-standard platforms like the Blue Gene/P. A numba optimized cross product routine may be implemented in module \inpyth{numba_module.py} and code will be generated and compiled when the module is imported.  For efficient speed-up on our structured mesh the code must be rewritten using explicit for loops
+Fortunately, many different strategies are known for speeding up pure \texttt{numpy} code, e.g.,  \inpyth{numba}, \inpyth{numexpr}, \inpyth{weave} and Cython. We have obtained best results for \inpyth{numba}, and Cython. The \inpyth{numba} module uses just in time compilation of Python functions chosen for optimization. The advantage of using \texttt{numba} is that no compilation or installation is required by the user who never has to leave the pure Python environment. The downside is that \inpyth{numba} is difficult to install on non-standard platforms like the Blue Gene/P. A \texttt{numba} optimized cross product routine may be implemented in module \inpyth{numba_module.py} and code will be generated and compiled when the module is imported.  For efficient speed-up on our structured mesh the code must be rewritten using explicit for loops
 \begin{python}
 numba_module.py:
 from numba import jit, int64, int32, uint8
@@ -668,9 +701,10 @@ def cross1(a, b, c):
                 c[2,i,j,k] = a0*b1 - a1*b0
     return c
 \end{python}
-The numba cross product may now be used directly in place of the pure Python version with no further modifications.
+The \texttt{numba} cross product may now be used directly in place of the pure Python version with no further modifications.
 
-Cython has gained much momentum in recent years and is usually the obvious choice for high performance computing. Using Cython, the cross product should be implemented like \inpyth{numba}, through explicit for loops. A module called \inpyth{cython_module.pyx} may be created and compiled using regular distutils (see, e.g., http://docs.cython.org /src/reference/compilation.html)
+Cython has gained much momentum in recent years and is usually the obvious choice for high performance computing. Using Cython, the cross product should be implemented like \inpyth{numba}, through explicit for loops, which are translated to efficient C code that can be highly optimized by the compiler. A module called \inpyth{cython_module.pyx} may be created and compiled using Python's standard installation utilities (\href{http://docs.cython.org /src/reference/compilation.html}{distutils}\footnote{\texttt{http://docs.cython.org /src/reference/compilation.html}}).
+
 \begin{python}
 cython_module.pyx:
 #cython: boundscheck=False
@@ -698,20 +732,20 @@ def cross1(np.ndarray[real_t, ndim=4] a,
                 c[2,i,j,k] = a0*b1 - a1*b0
 
 \end{python}
-Cython generated modules may be imported into Python and the \inpyth{cross1} function from Cython may be used directly in place of the pure Python version. 
+Cython generated modules may be imported into Python and the \inpyth{cross1} function from Cython may be used directly in place of the pure Python version.
 
-The Cython code for the cross product runs at about the same speed as \inpyth{numba} and approximately 3 times faster than pure numpy for a mesh of size $128^3$. When Cython is used to compute all elementwise operations that generate the right hand side of the Navier-Stokes equations, then the speed-up of the single process solve is approximately 25-30\% for a mesh of size $128^3$. In other words, with a few quick Cython wrappers we have a Python solver that is comparable in speed to its low-level counterpart in C++. And this solver is scripted and operated in a comfortable interactive environment where postprocessing and plotting may be performed from the command line.
+The Cython code for the cross product runs at about the same speed as \inpyth{numba} and approximately 3 times faster than pure \texttt{numpy} for a mesh of size $128^3$. When Cython is used to compute all elementwise operations that generate the right hand side of the Navier-Stokes equations, then the speed-up of the single process solve is approximately 25-30\% for a mesh of size $128^3$. In other words, with a few quick Cython wrappers we have a Python solver that is comparable in speed to its low-level counterpart in C++. And this solver is scripted and operated in a comfortable interactive environment where postprocessing and plotting may be performed from a command shell.
 
 \section{Parallel performance}
-Our Python based DNS solver has been tested on Shaheen, at the KAUST Supercomputing Laboratory. The primary computational resource of Shaheen consists of 16 racks of Blue Gene/P. Each rack contains 1024 quad-core, 32-bit, 850 MHz PowerPC compute nodes, for a total of 65,536 compute cores. Each node is equipped with 4GB of system memory, providing a total 64TB of distributed memory across the resource. Blue Gene nodes are interconnected by a three-dimensional point-to-point "torus" network used for general-purpose message-passing and multicast communication. 
+Our Python based DNS solver has been tested on the Shaheen computer at the KAUST Supercomputing Laboratory. The primary computational resource of Shaheen consists of 16 racks of Blue Gene/P. Each rack contains 1024 quad-core, 32-bit, 850 MHz PowerPC compute nodes, for a total of 65,536 compute cores. Each node is equipped with 4GB of system memory, providing a total 64TB of distributed memory across the resource. Blue Gene nodes are interconnected by a three-dimensional point-to-point ``torus'' network used for general-purpose message-passing and multicast communication.
 %By using many small, low-power, densely packaged chips, Blue Gene/P exceeded the power efficiency of other supercomputers of its generation, and at 371 MFLOPS/W Blue Gene/P installations ranked at or near the top of the Green500 lists in 2007-2008 \cite{top500green}.  Per November 2009, the TOP500 list contained 15 Blue Gene/P installations of 2-racks (2048 nodes, 8192 processor cores, 23.86 TFLOPS Linpack) and larger \cite{top500}.
 
 \subsection{Dynamic loading of Python}
-Running a Python solver on a supercomputer presents a few challenges. Most importantly, the dynamic loading time of Python, i.e., the time to simply get started, may become unreasonably high. To load Python with numpy on the complete 16 racks of Shaheen takes approximately 45 minutes. The main reason is that large-scale supercomputers, such as Shaheen, make use of parallel file systems designed to support large distributed loads, where each CPU is writing or reading data independently. With dynamic loading, however, each process attempts to access the same files simultaneously and bottlenecks appear. 
+Running a Python solver on a supercomputer presents a few challenges. Most importantly, the dynamic loading time of Python, i.e., the time to simply get started, may become unreasonably high. To load Python with \texttt{numpy} on the complete 16 racks of Shaheen takes approximately 45 minutes. The main reason is that large-scale supercomputers, such as Shaheen, make use of parallel file systems designed to support large distributed loads, where each CPU is writing or reading data independently. With dynamic loading, however, each process attempts to access the same files simultaneously and bottlenecks appear.
 
-A few solutions to the loading problem are known. The \inpyth{MPI_Import} Python module of Langton \cite{mpi_import} is designed to overload the built in import mechanism of Python such that only one rank (the zero rank) searches the filesystem for a module and then subsequently broadcasts the results to the remaining ranks. A drawback is the Python implementation where several modules (e.g., \inpyth{sys, imp, __builtin__,types, mpi4py}) need to be imported through the regular Python import mechanism. A second approach of Langton is to rewrite the regular finders and loaders modules such that one rank do all the initial work, caching the modules it finds. 
+A few solutions to the loading problem are known. The \inpyth{MPI_Import} Python module of Langton \cite{mpi_import} is designed to overload the built in import mechanism of Python such that only one rank (the zero rank) searches the filesystem for a module and then subsequently broadcasts the results to the remaining ranks. A drawback is the Python implementation where several modules (e.g., \inpyth{sys, imp, __builtin__,types, mpi4py}) need to be imported through the regular Python import mechanism. A second approach of Langton is to rewrite the regular finders and loaders modules such that one rank do all the initial work, caching the modules it finds.
 
-A better solution is provided through the Scalable Python implementation \cite{scalablepython, Enkovaara201117}, used by, e.g., GPAW \cite{gpaw05}. Here CPython is modified slightly such that during import operations only a single process performs the actual I/O, and MPI is used for broadcasting the data to other MPI ranks. The solution provided by scalable python is used in this work and as such dynamic loading times are kept very low (approximately 30 seconds for a full rack).
+A better solution is provided through the Scalable Python implementation \cite{scalablepython, Enkovaara201117}, used by, e.g., GPAW \cite{gpaw05}. Here CPython is modified slightly such that during import operations only a single process performs the actual I/O, and MPI is used for broadcasting the data to other MPI ranks. The solution provided by Scalable Python is used in this work and as such dynamic loading times are kept very low (approximately 30 seconds for a full rack).
 
 \subsection{Verification}
 \label{sec:verification}
@@ -721,21 +755,21 @@ nu = 1./1600
 dt = 0.001
 U[0] = sin(X[0])*cos(X[1])*cos(X[2])
 U[1] =-cos(X[0])*sin(X[1])*cos(X[2])
-U[2] = 0 
+U[2] = 0
 for i in range(3):
     U_hat[i] = fftn_mpi(U[i], U_hat[i])
 \end{python}
-where the same code is used for both the slab and the pencil decomposition. The Reynolds number is fixed at 1600 by setting the viscosity coefficient to 1./1600 and the time step is fixed at 0.001. We use a real mesh of size $N=512$, since that matches the reference data. A resolution of $512^3$ is reported by by Bratchet \cite{brachet1991direct} to represent a fully resolved DNS of this flow. 
+where the same code is used for both the slab and the pencil decomposition. The Reynolds number is fixed at 1600 by setting the viscosity coefficient to 1./1600 and the time step is fixed at 0.001. We use a real mesh of size $N=512$, since that matches the reference data. A resolution of $512^3$ is reported by by Bratchet \cite{brachet1991direct} to represent a fully resolved DNS of this flow.
 
 The non-optimized code is run on Shaheen using the pencil decomposition and 2048 cores. The entire simulation is set for 20 seconds real time, during which the flow undergoes transition, decays and finally fades out. The simulation takes 12 hours alltogether ($12\cdot2048$ CPU hours) and neither the kinetic energy nor the vorticity stray more than 0.01 \% from the reference solutions, even after 20,000 time steps.
 
 \subsection{Parallel scaling}
-The only MPI communication required by the solver can be found in the 3D 
-FFT routines, or when global results, like the total kinetic energy, are 
-computed. Scaling will be efficient as long as the cost for MPI 
-communication is smaller than all the other elementwise operations required 
-to set up the right hand side of the explicit ODE given by Eq. 
-(\ref{eq:NSfinal}). This is not a trivial task, considering that a pseudo-spectral solver demands that every process needs to send and receive data 
+The only MPI communication required by the solver can be found in the 3D
+FFT routines, or when global results, like the total kinetic energy, are
+computed. Scaling will be efficient as long as the cost for MPI
+communication is smaller than all the other elementwise operations required
+to set up the right hand side of the explicit ODE given by Eq.
+(\ref{eq:NSfinal}). This is not a trivial task, considering that a pseudo-spectral solver demands that every process needs to send and receive data
 from all the other processes - at least for the slab decomposition.
 
 It is customary for pseudospectral solvers to assume that the main computational cost is due to Fourier transforms, and as such the CPU time should ideally scale like
@@ -748,53 +782,53 @@ where $M$ is the number of CPUs. In other words, strong scaling implies, as usua
 
 
 \subsubsection{Weak scaling}
-To verify weak scaling we continue to use the Taylor Green test case and keep the ratio of mesh size to number of processors ($N^3/M$) constant, which ideally should lead to CPU times proportional to $\log_2 N$. The solver used in this section is not optimized in any way beyond numpy/mpi4py/pyfftw. 
-Both slab and pencil decompositions are tested using four meshes of size $N^3$, where $N=(2^7, 2^8, 2^9, 2^{10}) =(128, 256, 512, 1024)$ and single precision arithmetics (which is also customary for scaling tests of DNS solvers). For these meshes the slab decomposition uses $M=(2, 16, 128, 1024)$ number of CPUs and the pencil uses twice as many $M=(4, 32, 256, 2048)$ with $P1=(2, 4, 16, 32)$. 
-Note that for $N=1024$ the maximum number of CPUs is reached for the slab decomposition, whereas the pencil 
-decomposition may still use many more. The real computing time per time step is measured and the results 
-are scaled by $N^3 \log_2N$ and plotted in Figure \ref{fig:weak_scaling_shaheen}. Slab and pencil results 
-are marked by squares and dots, respectively, the C++ results are shown as diamonds and the solid line 
-corresponds to ideal scaling. From Fig. \ref{fig:weak_scaling_shaheen} it is evident that both slab and pencil versions of the Python solver show excellent scaling, 
+To verify weak scaling we continue to use the Taylor Green test case and keep the ratio of mesh size to number of processors ($N^3/M$) constant, which ideally should lead to CPU times proportional to $\log_2 N$. The solver used in this section is not optimized in any way beyond \texttt{numpy/mpi4py/pyfftw}.
+Both slab and pencil decompositions are tested using four meshes of size $N^3$, where $N=(2^7, 2^8, 2^9, 2^{10}) =(128, 256, 512, 1024)$ and single precision arithmetics (which is also customary for scaling tests of DNS solvers). For these meshes the slab decomposition uses $M=(2, 16, 128, 1024)$ number of CPUs and the pencil uses twice as many $M=(4, 32, 256, 2048)$ with $P1=(2, 4, 16, 32)$.
+Note that for $N=1024$ the maximum number of CPUs is reached for the slab decomposition, whereas the pencil
+decomposition may still use many more. The real computing time per time step is measured and the results
+are scaled by $N^3 \log_2N$ and plotted in Figureure \ref{fig:weak_scaling_shaheen}. Slab and pencil results
+are marked by squares and dots, respectively, the C++ results are shown as diamonds and the solid line
+corresponds to ideal scaling. From Figure~\ref{fig:weak_scaling_shaheen} it is evident that both slab and pencil versions of the Python solver show excellent scaling,
 and only start to trail off the ideal curve for the largest mesh sizes. The C++ solver is seen to be about $40 \%$ faster than the pure
-Python solver, but weak scaling is apparently similar. Note that the pencil computations use twice as many cores for the same mesh 
-size as the slab computations. As such the two methods would fall on the same line in 
-Fig.~\ref{fig:weak_scaling_shaheen} if they were equally efficient. The slab decomposition is thus seen to 
+Python solver, but weak scaling is apparently similar. Note that the pencil computations use twice as many cores for the same mesh
+size as the slab computations. As such the two methods would fall on the same line in
+Figure.~\ref{fig:weak_scaling_shaheen} if they were equally efficient. The slab decomposition is thus seen to
 be more efficient than pencil, which is generally in agreement with previous studies (need ref).
 
 \begin{figure}
 \includegraphics[scale=1]{figs/weak_scaling_shaheen_numpy.png}
-\caption{Weak scaling of pure numpy/mpi4py/pyfftw DNS solver. The slab (squares) decomposition used $4 \cdot 64^3$ nodes per core, whereas the pencil decomposition (dots) used $2 \cdot 64^3 $. The C++ solver uses slab decomposition and MPI communication is performed through the FFTW library. }
+\caption{Weak scaling of pure \texttt{numpy/mpi4py/pyfftw} DNS solver. The slab (squares) decomposition used $4 \cdot 64^3$ nodes per core, whereas the pencil decomposition (dots) used $2 \cdot 64^3 $. The C++ solver uses slab decomposition and MPI communication is performed through the FFTW library. }
 \label{fig:weak_scaling_shaheen}
 \end{figure}
 
 \subsubsection{Strong scaling}
 \label{sec:strong_scaling}
-Strong scaling over a wide range of processors is usually more challenging 
-to prove than weak, in our case partly because the efficiency of the FFT routines 
-depends on the length of the datastructures and how well they fit into 
-memory. Nevertheless, we have performed strong scaling tests of our pure Python and optimized 
-Python/Cython code for the Taylor Green test case with a computational box of size $512^3$. In Fig. 
-\ref{fig:strong_scaling_shaheen} we plot the computing time per time step, for both the pencil (circles) and slab decompositions, where the slab results are shown both with (triangles) and without (left pointing triangles) optimization. The effect of Cython is less pronounced on the pencil solver and as such not shown. The number of 
-cores is varied over the entire possible range from 64 to 512 for the slab 
-decomposition (lower limit due to memory), and from 64 to 4096 for the 
-pencil decomposition. The scaling is, quite frankly, excellent for the optimized versions, both pencil (circles) and slab (triangles), and speedup is observed 
-throughout the entire range. The pure Python solver achieves good speed-up 
-for a modest number of cores, but gradually degrades for a larger mesh. Interestingly, the optimized version of the code is seen 
-to more than match the performance of the C++ solver for this particular 
-case. In this regard it is interesting to note that the C++ and the Python code both use the same FFTW library. However, the Python code only makes use of the serial versions of the FFTW 
-routines and performs the MPI communications itself through 
-\inpyth{mpi4py}, whereas the C++ code uses the built in MPI communication routines of FFTW. From Fig. \ref{fig:strong_scaling_shaheen} it is evident 
-that the C++ and the optimized Python solver (slab P/C) are approximately 
-equally fast for 64 processors, but from then on the Python code performes 
-gradually better for larger number of cores. This enhanced performance 
-means that our Python implementation of the parallel 3D FFT routine, for this 
-particular case at least, is actually faster than the one provided through the FFTW library.
+Strong scaling over a wide range of processors is usually more challenging
+to prove than weak, in our case partly because the efficiency of the FFT routines
+depends on the length of the datastructures and how well they fit into
+memory. Nevertheless, we have performed strong scaling tests of our pure Python and optimized
+Python/Cython code for the Taylor Green test case with a computational box of size $512^3$. In Figure.
+\ref{fig:strong_scaling_shaheen} we plot the computing time per time step, for both the pencil (circles) and slab decompositions, where the slab results are shown both with (triangles) and without (left pointing triangles) optimization. The effect of Cython is less pronounced on the pencil solver and as such not shown. The number of
+cores is varied over the entire possible range from 64 to 512 for the slab
+decomposition (lower limit due to memory), and from 64 to 4096 for the
+pencil decomposition. The scaling is, quite frankly, excellent for the optimized versions, both pencil (circles) and slab (triangles), and speedup is observed
+throughout the entire range. The pure Python solver achieves good speed-up
+for a modest number of cores, but gradually degrades for a larger mesh. Interestingly, the optimized version of the code is seen
+to more than match the performance of the C++ solver for this particular
+case. In this regard it is interesting to note that the C++ and the Python code both use the same FFTW library. However, the Python code only makes use of the serial versions of the FFTW
+routines and performs the MPI communications itself through
+\inpyth{mpi4py}, whereas the C++ code uses the built in MPI communication routines of FFTW. From Figure~\ref{fig:strong_scaling_shaheen} it is evident
+that the C++ and the optimized Python solver (slab P/C) are approximately
+equally fast for 64 processors, but from then on the Python code performes
+gradually better for larger number of cores. This enhanced performance
+means that our Python implementation of the parallel 3D FFT routine, for this
+particular case at least, is actually faster than the parallel implementation provided through the FFTW library.
 
-We note finally that an obvious scaling problem for the pure numpy implementation is the transpose operation used in the implementation of the FFTs 
-(see implementation of \inpyth{fftn_mpi}), where a for loop is used over all processes (or over all 
-processes in a group for pencil decomposition) to rearrange data. The for loops are inefficient in Python 
-and should be avoided. For relatively small numbers of processors the cost of this for loop is negligible, 
-but when approaching thousands of processors, the loop becomes too slow leading to poor scaling. This for loop is the main reason why the numpy solver performs rather poorly for the largest number of cores seen for the slab solver in Fig. \ref{fig:strong_scaling_shaheen}. 
+We note finally that an obvious scaling problem for the pure \texttt{numpy} implementation is the transpose operation used in the implementation of the FFTs
+(see implementation of \inpyth{fftn_mpi}), where a for loop is used over all processes (or over all
+processes in a group for pencil decomposition) to rearrange data. The for loops are inefficient in Python
+and should be avoided. For relatively small numbers of processors the cost of this for loop is negligible,
+but when approaching thousands of processors, the loop becomes too slow leading to poor scaling. This for loop is the main reason why the \texttt{numpy} solver performs rather poorly for the largest number of cores seen for the slab solver in Figure~\ref{fig:strong_scaling_shaheen}.
 
 
 \begin{figure}
@@ -805,7 +839,7 @@ but when approaching thousands of processors, the loop becomes too slow leading 
 
 \section{Conclusions}
 
-For the benefit of the fluid mechanics community, in need of accessible highly accurate flow solvers, we have described a parallel Python implementation of an open source pseudo-spectral DNS solver for turbulent flows. The solver is implemented using standard Python modules (numpy, mpi4py) and a very high level of abstraction, using no more than 100 lines of code - nothing more than a script really. We have then discussed an optimization of this solver through the use of Cython. The solver has been verified and benchmarked on the Shaheen supercomputer at the KAUST supercomputing laboratory and we are able to show very good scaling up to several thousand cores with performance matching that of a pure C++ implementation. 
+For the benefit of the fluid mechanics community, in need of accessible highly accurate flow solvers, we have described a parallel Python implementation of an open source pseudo-spectral DNS solver for turbulent flows. The solver is implemented using standard Python modules (\texttt{numpy}, \texttt{mpi4py}) and a very high level of abstraction, using no more than 100 lines of code, just like a similar MATLAB script, but targeting supercomputer platforms. We have then discussed an optimization of a small part of this solver through the use of Cython. The solver has been verified and benchmarked on the Shaheen supercomputer at the KAUST supercomputing laboratory, and we are able to show excellent scaling up to several thousand cores with performance matching that of a pure C++ implementation.
 
 \section*{Acknowledgements}
 M. Mortensen acknowledges support from the 4DSpace Strategic Research Initiative at the University of Oslo. M. Mortensen and H. P. Langtangen also acknowledge support through a Center of Excellence grant from the Research Council of Norway to the Center for Biomedical Computing at Simula Research Laboratory.
@@ -911,7 +945,7 @@ while t < T-1e-8:
     U_hat[:] = U_hat1[:]
     for i in range(3):
         U[i] = ifftn_mpi(U_hat[i], U[i])
-        
+
 \end{python}
 
 
