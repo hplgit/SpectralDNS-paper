@@ -248,7 +248,7 @@ u(\bm{x}, t) &= \frac{1}{N^3}\sum_{\bm{k}} \hat{u}_{\bm{k}}(t) e^{\imath \bm{k}\
 \end{align}
 where $\hat{u}_{\bm{k}}(t)$ is used to represent the Fourier coefficients, $\imath=\sqrt{-1}$ represents the imaginary unit, and $e^{\imath \bm{k}\cdot \bm{x}}$ represents the basis functions for the spectral Galerkin method. Equations (\ref{eq:ffteq}) and (\ref{eq:iffteq}) correspond, respectively, to the three-dimensional discrete Fourier transform, $\mathcal{F}$, and its inverse $\mathcal{F}^{-1}$. We use the notation
 \begin{align}
-\hat{u}_{\bm{k}}(t) = \hat{{u}}(k_x, k_y, k_z, t) &= \mathcal{F}(\bm{u}(\bm{x}, t)) \left[= \mathcal{F}_{k_x} \left(\mathcal{F}_{k_y} \left( \mathcal{F}_{k_z} ({u}) \right) \right) \right], \label{eq:fft}\\
+\hat{u}_{\bm{k}}(t) = \hat{{u}}(k_x, k_y, k_z, t) &= \mathcal{F}({u}(\bm{x}, t)) \left[= \mathcal{F}_{k_x} \left(\mathcal{F}_{k_y} \left( \mathcal{F}_{k_z} ({u}) \right) \right) \right], \label{eq:fft}\\
 {u}(\bm{x}, t) = {u}(x, y, z, t) &= \mathcal{F}^{-1}(\hat{{u}}_{\bm{k}}(t)) \left[= \mathcal{F}^{-1}_{z}\left(\mathcal{F}^{-1}_{y}\left(\mathcal{F}^{-1}_{x}(\hat{{u}})\right)\right)\right], \label{eq:ifft}
 \end{align}
 where the indices on $\mathcal{F}$ and $\mathcal{F}^{-1}$ within the square brackets are used to indicate direction of the transform. Both forward and inverse transforms involve three consecutive transformations, one for each periodic direction. The inverse transforms must be computed in the opposite order of the forward transforms, but otherwise the order is arbitrary. The first forward transform (here in the $z$-direction) is real and the remaining two are complex valued, leaving a total of $N^2$ real transforms of length $N$ and $2(N/2+1)N$ complex transforms of length $N$. 
@@ -314,7 +314,7 @@ X = mgrid[:N, :N, :N].astype(float)*L/N
 \end{python}
 The matrix \inpyth{X} has dimensions \inpyth{(3, N, N, N)}. Since the Navier Stokes equations are solved in Fourier space, the physical space is only used to compute the convection plus to do post processing. The mesh \inpyth{X} is typically used for initialization and is otherwise not needed (and may therefore be deleted to save memory). In parallel mode, \inpyth{X} will be split up and divided between the processors.  Note that the solver may be operated in either single or double precision mode, and that \inpyth{float} in our code is a placeholder for either one of the \inpyth{numpy} datatypes \inpyth{float32} or \inpyth{float64}, depending on settings.
 
-The velocity field to be transformed is real, and the discrete Fourier transform of a real sequence has the property that $\hat{\bm{u}}_k = \hat{\bm{u}}_{N-k}^*$, where $^*$ denotes the complex conjugate. As such, it is sufficient to use $N/2+1$ Fourier coefficients in the first transformed direction, leading to a transformed wavenumber mesh of size $(N/2+1)N^2$. The odd number of wavenumbers does not lead to any issues for the serial version of the code or for the slab decomposition. However, for the pencil decomposition it requires special attention, see Sec. \ref{pencil2D}. 
+The velocity field to be transformed is real, and the discrete Fourier transform of a real sequence has the property that $\hat{u}_k = \hat{{u}}_{N-k}^*$, where $^*$ denotes the complex conjugate. As such, it is sufficient to use $N/2+1$ Fourier coefficients in the first transformed direction, leading to a transformed wavenumber mesh of size $(N/2+1)N^2$. The odd number of wavenumbers does not lead to any issues for the serial version of the code or for the slab decomposition. However, for the pencil decomposition it requires special attention, see Sec. \ref{pencil2D}. 
 
 In our code the real transform is taken in the final $z$ direction and the wavenumbers $\bm{k}=(k_x, k_y, k_z)$ stored on the transformed mesh thus has ordering as used by the FFT routines provided by \texttt{numpy.fft} or \texttt{pyfftw}:
 
@@ -441,7 +441,7 @@ while t <= T:
 \end{python}
 Obviously, more advanced integrators may be easily added by modifying the final \inpyth{while} loop. 
 
-The nonlinear convection term in (\ref{eq:NSfinal}) is dealiased using the 2/3-rule and dealiasing is simply achieved by an elementwise multiplication of a convection matrix \inpyth{dU[3, N, N, N/2+1]} with a matrix \inpyth{dealias[N, N, N/2+1]}, that is zero where the wavenumbers are larger than 2/3 of the Nyquist mode and unity otherwise. Note that the dimensions of \inpyth{dU} and \inpyth{dealias} differ in the first index since \inpyth{dU} contains contributions from all three vector components. However, through automatic broadcasting, \texttt{numpy} realizes that the last three dimensions are the same and as such all three components of \inpyth{dU} (i.e.,  \inpyth{dU[0]}, \inpyth{dU[1]} and  \inpyth{dU[2]}) are multiplied elementwise with the same matrix \inpyth{dealias}. 
+The nonlinear convection term in (\ref{eq:NSfinal}) is dealiased using the 2/3-rule and dealiasing is simply achieved by an elementwise multiplication of a convection tensor \inpyth{dU[3, N, N, N/2+1]} with another tensor \inpyth{dealias[N, N, N/2+1]}, that is zero where the wavenumbers are larger than 2/3 of the Nyquist mode and unity otherwise. Note that the dimensions of \inpyth{dU} and \inpyth{dealias} differ in the first index since \inpyth{dU} contains contributions from all three vector components. However, through automatic broadcasting, \texttt{numpy} realizes that the last three dimensions are the same and as such all three components of \inpyth{dU} (i.e.,  \inpyth{dU[0]}, \inpyth{dU[1]} and  \inpyth{dU[2]}) are multiplied elementwise with the same tensor \inpyth{dealias}. 
 
 \subsection{1D Slab decomposition}
 \label{slab1D}
@@ -458,18 +458,15 @@ K = array(meshgrid(kx, ky[rank*Np:(rank+1)*Np], kz,
 \end{python}
 In general, using \inpyth{num_processes} CPUs, each CPU gets responsibility for \inpyth{Np = N/num_processes} two-dimensional slices and the physical mesh is simply decomposed along the first index. The wavenumber mesh, on the other hand, is split along the second index. The reason for this choice is that the $k_x$ direction is the last direction to be transformed by the three consecutive FFTs and for this operation the data structures will need to be aligned in planes normal to the $k_y$ direction. This becomes obvious if one considers the MPI decomposition as illustrated in Fig. \ref{fig:Slabdecomp} for the case of a physical mesh of size $8^3$ divided amongst 4 CPUs.
 
-The entire 3D parallel FFT may be implemented with some preallocation of work arrays and 5 lines of Python code:
+The entire 3D parallel FFT may be implemented with preallocation of a work array to do MPI and 5 lines of Python code:
 
 \begin{python}
-# Preallocated work arrays
-Uc_hat  = empty((N, Np, Nf), dtype=complex) 
-Uc_hatT = empty((Np, N, Nf), dtype=complex) 
-U_mpi   = empty((num_processes, Np, Np, Nf), dtype=complex)
-Uc_send = Uc_hat.reshape((num_processes, Np, Np, Nf)) # View into Uc_hat
+# Preallocated work array for MPI
+U_mpi = empty((num_processes, Np, Np, Nf), dtype=complex)
 
 def fftn_mpi(u, fu):
     """FFT in three directions using MPI."""
-    Uc_hatT[:] = rfft2(u, axes=(1,2))
+    Uc_hatT = rfft2(u, axes=(1,2))
     for i in range(num_processes): 
         U_mpi[i] = Uc_hatT[:, i*Np:(i+1)*Np]
     comm.Alltoall([U_mpi, mpitype], [fu, mpitype])    
@@ -479,7 +476,7 @@ def fftn_mpi(u, fu):
 def ifftn_mpi(fu, u):
     """Inverse FFT in three directions using MPI.
        Need to do ifft in reversed order of fft."""
-    Uc_hat[:] = ifft(fu, axis=0)
+    Uc_hat = ifft(fu, axis=0)
     comm.Alltoall([Uc_hat, mpitype], [U_mpi, mpitype])
     for i in range(num_processes):
         Uc_hatT[:, :, i*Np:(i+1)*Np] = U_mpi[i]
@@ -502,12 +499,9 @@ operation, where the \inpyth{mpitype} is a placeholder for \inpyth{MPI.F_DOUBLE_
 up for the final FFT in the $x$-direction. The \inpyth{ifftn_mpi} routine is basically the inverse of the 
 forward transform and its implementation should be straightforward to follow.
 
-Three global pre-allocated complex work arrays are needed for the three-dimensional FFT: 
-\inpyth{Uc_hatT[Np, N, N/2+1]},  \inpyth{Uc_hat[N, Np, N/2+1]} and \inpyth{U_mpi[num_processes, Np, Np,N/2+1]}. 
-Note that  \inpyth{Alltoall} requires two work arrays as placeholders, one for each of the data 
-structures seen in Fig \ref{fig:Slabdecomp} (b) and (c). Alternatively, the forward data transfer may be 
-performed without explicit work arrays using the in-place \inpyth{Sendrecv_replace} instead of 
-\inpyth{Alltoall}, along with transpose operations. This is easily implemented, but, since the method has been found slower, details are not shown here.
+Only one explicit global pre-allocated complex work array (\inpyth{U_mpi[num_processes, Np, Np, N/2+1]}) is needed for the \inpyth{Alltoall} routine in the three-dimensional FFT. The transform routines of \inpyth{pyfftw} maintain their own work arrays and \inpyth{Uc_hatT} and \inpyth{Uc_hat} above actually point to this internal data storage. Alternatively, the forward data transfer may be 
+performed completely without explicit work arrays using the in-place \inpyth{Sendrecv_replace} instead of 
+\inpyth{Alltoall}, along with transpose operations. This is easily implemented, but, since the method has been found slightly slower, details are not shown here.
 
 \begin{figure}[t!]
 \subfigure[Physical mesh]{
