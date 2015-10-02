@@ -172,19 +172,15 @@ Direct Numerical Simulations (DNS) of the Navier Stokes equations is an
 invaluable research tool in fluid dynamics. Still, there are few publicly
 available research codes and, due to the heavy number crunching implied,
 available codes are usually written in low-level
-languages such as C or Fortran.
+languages such as C/C++ or Fortran.
 In this paper we describe a pure Python pseudo-spectral DNS code
 that nearly matches the performance of C++ for thousands of processors
-and billions of unknowns. We also describe an optimized version, using
-Cython, that is found to match the speed of C++ without ever needing to leave
-the confortable interactive Python environment. The solver is written from
-scratch in Python, both the mesh, the MPI domain decomposition, and the
-temporal integrators. The solver
-has been verified and benchmarked on the Shaheen supercomputer at the
+and billions of unknowns. We also describe a version optimized through Cython, that is found to match the speed of C++. The solvers are written from scratch in Python, both the mesh, the MPI domain decomposition, and the temporal integrators. The solvers
+have been verified and benchmarked on the Shaheen supercomputer at the
 KAUST supercomputing laboratory,
 and we are able to show very good scaling up to several thousand cores.
 
-A very important part of the implementation is the mesh decomposition (we implement both slab and pencil decompositions) and 3D parallel Fast Fourier Transforms (FFT). The mesh decomposition and FFT routines have been implemented in Python using serial FFT routines (either \inpyth{numpy} or \inpyth{pyfftw}), \inpyth{numpy} array manipulations and with MPI communications handled by \inpyth{mpi4py}. We show how we can execute a 3D parallel FFT in Python for a slab mesh decomposition using 4 lines of compact Python code, for which the parallel performance on Shaheen is found to be slightly better than similar routines provided through the FFTW library. For a pencil mesh decomposition 7 lines of code is required to execute a transformation.
+A very important part of the implementation is the mesh decomposition (we implement both slab and pencil decompositions) and 3D parallel Fast Fourier Transforms (FFT). The mesh decomposition and FFT routines have been implemented in Python using serial FFT routines (either \inpyth{numpy.fft}, \inpyth{pyfftw} or any other serial FFT module), \inpyth{numpy} array manipulations and with MPI communications handled by \inpyth{mpi4py}. We show how we are able to execute a 3D parallel FFT in Python for a slab mesh decomposition using 4 lines of compact Python code, for which the parallel performance on Shaheen is found to be slightly better than similar routines provided through the FFTW library. For a pencil mesh decomposition 7 lines of code is required to execute a transform.
 
 \section{Introduction}
 %\subsection{}
