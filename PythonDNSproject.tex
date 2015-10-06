@@ -1,68 +1,94 @@
-\documentclass[11pt, oneside]{article}
-\usepackage[utf8]{inputenc}
-\usepackage{bm}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{graphicx}
-\usepackage{ptex2tex, minted}
-\usepackage{xcolor}
-\usepackage{cancel}
-\usepackage{caption}
-\usepackage{subfigure}
-\subfiglabelskip=0pt
+%% This template can be used to write a paper for
+%% Computer Physics Communications using LaTeX.
+%% For authors who want to write a computer program description,
+%% an example Program Summary is included that only has to be
+%% completed and which will give the correct layout in the
+%% preprint and the journal.
+%% The `elsarticle' style is used and more information on this style
+%% can be found at 
+%% http://www.elsevier.com/wps/find/authorsview.authors/elsarticle.
+%%
+%%
+%\documentclass[preprint,review,12pt]{elsarticle}
 
+%% Use the option review to obtain double line spacing
+%% \documentclass[preprint,review,12pt]{elsarticle}
+
+%% Use the options 1p,twocolumn; 3p; 3p,twocolumn; 5p; or 5p,twocolumn
+%% for a journal layout:
+\documentclass[final,1p,times]{elsarticle}
+%%\documentclass[final,1p,times,twocolumn]{elsarticle}
+%% \documentclass[final,3p,times]{elsarticle}
+%%\documentclass[final,3p,times,twocolumn]{elsarticle}
+%%\documentclass[final,5p,times]{elsarticle}
+%%\documentclass[final,5p,times,twocolumn]{elsarticle}
+
+%% if you use PostScript figures in your article
+%% use the graphics package for simple commands
+%% \usepackage{graphics}
+%% or use the graphicx package for more complicated commands
+\usepackage{graphicx}
+\usepackage{array}
+%% or use the epsfig package if you prefer to use the old commands
+%% \usepackage{epsfig}
+\usepackage{algorithm2e}
+\usepackage{caption}
+%% The amssymb package provides various useful mathematical symbols
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{bm}
+%% The amsthm package provides extended theorem environments
+\usepackage{amsthm}
+\usepackage{dirtree}
+\usepackage{lmodern}
+\usepackage{subfigure}
+\usepackage{hyperref}
+%% The lineno packages adds line numbers. Start line numbering with
+%% \begin{linenumbers}, end it with \end{linenumbers}. Or switch it on
+%% for the whole article with \linenumbers after \end{frontmatter}.
+%% \usepackage{lineno}
+
+%% natbib.sty is loaded by default. However, natbib options can be
+%% provided with \biboptions{...} command. Following options are
+%% valid:
+
+%%   round  -  round parentheses are used (default)
+%%   square -  square brackets are used   [option]
+%%   curly  -  curly braces are used      {option}
+%%   angle  -  angle brackets are used    <option>
+%%   semicolon  -  multiple citations separated by semi-colon
+%%   colon  - same as semicolon, an earlier confusion
+%%   comma  -  separated by comma
+%%   numbers-  selects numerical citations
+%%   super  -  numerical citations as superscripts
+%%   sort   -  sorts multiple citations according to order in ref. list
+%%   sort&compress   -  like sort, but also compresses numerical citations
+%%   compress - compresses without sorting
+%%
+%% \biboptions{comma,round}
+
+% \biboptions{}
+
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\footnotesize,
+numbers=none,
+aboveskip=1ex,
+belowskip=1ex
+}
+
+\newcommand{\belowtitleskip}{2pt}%\smallskipamount}
+
+\usepackage{xcolor}
 \definecolor{gray}{gray}{0.97}
 \colorlet{commentcolour}{green!50!black}
 \colorlet{stringcolour}{red!60!black}
 \colorlet{keywordcolour}{magenta!90!black}
 \colorlet{exceptioncolour}{yellow!50!red}
 \colorlet{commandcolour}{blue!60!black}
-\colorlet{numpycolour}{blue!60!green}
-\colorlet{literatecolour}{magenta!90!black}
 \colorlet{promptcolour}{green!50!black}
-\colorlet{specmethodcolour}{violet}
-\colorlet{indendifiercolour}{green!70!white}
-
-%\newcommand{\codetitlestyle}[1]{\small\textit{#1}\hspace{0.1cm}}
-\newcommand{\belowtitleskip}{2pt}%\smallskipamount}
-%\newcommand{\captionposition}{t}
-
-%\newcommand{\mmo}[1]{\emph{#1}}
-
-%\renewcommand{\ttdefault}{pcr}
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
-\usepackage[top=3cm,bottom=4cm,left=3cm,right=3.2cm,asymmetric]{geometry}
-
-\lstset{
-numbers=none,
-aboveskip=1ex,
-belowskip=1ex,
-basicstyle=\ttfamily\footnotesize,
-breaklines=true,
-breakatwhitespace= true,
-xleftmargin=\framemargin,
-xrightmargin=\framemargin,
-aboveskip=1ex,
-belowskip=1ex,
-frame=trbl, %trbl
-numbers=none,
-%frameround=tttt,
-rulecolor=\color{black!40},
-%framexleftmargin=\framemargin,
-%framextopmargin=.1ex,
-%framexbottommargin=.1ex,
-%framexrightmargin=\framemargin,
-%framexleftmargin=1mm, framextopmargin=1mm, frame=shadowbox, rulesepcolor=\color{blue},#1
-%frame=tb,
-%backgroundcolor=\color{yellow!10}
-backgroundcolor=\color{white},
-}
 
 \lstdefinestyle{pythonstyle}{
-%%\lstset{
-%%keepspaces=true,
+keepspaces=true,
 language=python,
 showtabs=true,
 tab=,
@@ -72,102 +98,133 @@ stringstyle=\color{stringcolour},
 showstringspaces=false,
 alsoletter={1234567890},
 otherkeywords={\ , \}, \{, \%, \&, \|},
-keywordstyle=\color{keywordcolour}\bfseries,
-emph={and,break,class,continue,def,yield,del,elif ,else,%
-except,exec,finally,for,from,global,if,import,in,%
-lambda,not,or,pass,print,raise,return,try,while,assert},
-emphstyle=\color{blue}\bfseries,
+keywordstyle=\color{keywordcolour}\bfseries,%
 emph={[2]True, False, None},
 emphstyle=[2]\color{keywordcolour},
-emph={[3]object,type,isinstance,copy,deepcopy,zip,enumerate,reversed,list,len,dict,tuple,xrange,append,execfile,real,imag,reduce,str,repr},
+emph={[3]object,type,isinstance,copy,deepcopy,zip,enumerate,
+reversed,list,len,dict,tuple,xrange,append,execfile,real,imag,
+reduce,str,repr, vars},
 emphstyle=[3]\color{commandcolour},
 emph={Exception,NameError,IndexError,SyntaxError,TypeError,ValueError,OverflowError,ZeroDivisionError},
 emphstyle=\color{exceptioncolour}\bfseries,
-%upquote=true,
 morestring=[s]{"""}{"""},
 morestring=[s]{'''}{'''},
 commentstyle=\color{commentcolour}\slshape,
-emph={[4]1, 2, 3, 4, 5, 6, 7, 8, 9, 0,ode, fsolve, sqrt, exp, sin, cos, arccos, pi, array, norm, solve,float,complex, dot, arange, isscalar, max, sum, flatten, shape, reshape, find, any, all, abs, plot, linspace, legend, quad, polyval,polyfit, hstack,vector, concatenate,vstack,column_stack,empty,zeros,ones,rand,vander,grid,pcolor,eig,eigs,eigvals,svd,qr,tan,det,logspace,roll,min,mean,cumsum,cumprod,diff,vectorize,lstsq,cla,eye,xlabel,ylabel,squeeze},
+emph={[4]1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 001, ode, fsolve, sqrt, exp, sin, cos, arccos, pi, array, norm, dot, arange, , isscalar, max, sum, flatten, shape, reshape, find, any, all, abs, plot, linspace, legend, quad, polyval,polyfit, hstack, concatenate,vstack,column_stack,empty,zeros,ones,rand,vander,
+grid,pcolor,eig,eigs,eigvals,svd,qr,tan,det,logspace,roll,min,
+mean,cumsum,cumprod,diff,vectorize,lstsq,cla,eye,xlabel,ylabel,
+},
 emphstyle=[4]\color{commandcolour},
-emph={[5]__init__,__add__,__mul__,__div__,__sub__,__call__,__getitem__,__setitem__,__eq__,__ne__,__nonzero__,__rmul__,__radd__,__repr__,__str__,__get__,__truediv__,__pow__,__name__,__future__,__all__},
-emphstyle=[5]\color{specmethodcolour},
-emph={[6]assert,range,yield},
-emphstyle=[6]\color{keywordcolour}\bfseries,
-emph={[7]def, return, and, print},
-emphstyle=[7]\color{black}\bfseries,
-% emph={[7]self},
-% emphstyle=[7]\bfseries,
+emph={[5]and,break,class,continue,def,yield,del,elif ,else,
+except,exec,finally,for,global,if,in,
+lambda,not,or,pass,print,raise,return,try,while,assert},
+emphstyle=[5]\color{black}\bf,
 literate=*%
-%{:}{{\literatecolour:}}{1}%
-%{=}{{\literatecolour=}}{1}%
-%{-}{{\literatecolour-}}{1}%
-%{+}{{\literatecolour+}}{1}%
-%{*}{{\literatecolour*}}{1}%
-{/}{{\literatecolour/}}{1}%
-{!}{{\literatecolour!}}{1}%
-%{(}{{\literatecolour(}}{1}%
-%{)}{{\literatecolour)}}{1}%
-%{[}{{\literatecolour[}}{1}%
-%{]}{{\literatecolour]}}{1}%
-{<}{{\literatecolour<}}{1}%
-{>}{{\literatecolour>}}{1}%
+%{+}{{\textcolor{black}{+}}}{1}%
+%{*}{{\textcolor{black}{*}}}{1}%
 {>>>}{{\textcolor{promptcolour}{>>>}}}{1}%
 ,%
 breaklines=true,
 breakatwhitespace= true,
-xleftmargin=\framemargin,
-xrightmargin=\framemargin,
+xleftmargin=0ex,
+xrightmargin=0ex,
 aboveskip=1ex,
 belowskip=1ex,
 frame=trbl, %trbl
 numbers=none,
-%frameround=tttt,
-rulecolor=\color{black!40},
-%framexleftmargin=\framemargin,
-%framextopmargin=.1ex,
-%framexbottommargin=.1ex,
-%framexrightmargin=\framemargin,
-%framexleftmargin=1mm, framextopmargin=1mm, frame=shadowbox, rulesepcolor=\color{blue},#1
-%frame=tb,
-%backgroundcolor=\color{yellow!10}
-backgroundcolor=\color{gray}
-%}
+%rulecolor=\color{black!40},
+backgroundcolor=\color{white}
 }
 
-\newcommand{\inpyth}{\lstinline[keywordstyle={}, basicstyle=\ttfamily]} %[]%
+\lstdefinestyle{inlinestyle}{
+language=python,
+basicstyle=\ttfamily\footnotesize,%\setstretch{.5},
+breaklines=true,
+breakatwhitespace= true,
+xleftmargin=0ex,
+xrightmargin=0ex,
+aboveskip=1ex,
+belowskip=1ex,
+frame=trbl, %trbl
+numbers=none,
+float=htpb,
+}
 
-\lstnewenvironment{inpython}[1][]{
+\lstnewenvironment{python}[1][]{
 \lstset{style=pythonstyle, frame=trbl, belowcaptionskip=\belowtitleskip}
 }{}
 
-\newcommand{\includecode}[2][py]{\lstinputlisting[caption=#2,label=list:#2,style=pythonstyle,
-float=!htpb]{#2}}
+\newcommand{\inpyth}{\lstinline[style=inlinestyle]} %[]%
 
-\usepackage{hyperref}
-\hypersetup{
-    breaklinks=true,
-    colorlinks=true,
-    linkcolor=blue,
-    urlcolor=blue,
-    citecolor=black,
-    filecolor=black,
-    %filecolor=blue,
-    pdfmenubar=true,
-    pdftoolbar=true,
-    bookmarksdepth=3   % Uncomment (and tweak) for PDF bookmarks with more levels than the TOC
-    }
+%% This list environment is used for the references in the
+%% Program Summary
+%%
+\newcounter{bla}
+\newenvironment{refnummer}{%
+\list{[\arabic{bla}]}%
+{\usecounter{bla}%
+ \setlength{\itemindent}{0pt}%
+ \setlength{\topsep}{0pt}%
+ \setlength{\itemsep}{0pt}%
+ \setlength{\labelsep}{2pt}%
+ \setlength{\listparindent}{0pt}%
+ \settowidth{\labelwidth}{[9]}%
+ \setlength{\leftmargin}{\labelwidth}%
+ \addtolength{\leftmargin}{\labelsep}%
+ \setlength{\rightmargin}{0pt}}}
+ {\endlist}
 
-\newcommand{\hpl}[1]{({\bf hpl comment:} \emph{#1})}
-\bibliographystyle{plain}
-
-\title{High Performance Python for direct numerical simulations of turbulent flows}
-\author{Mikael Mortensen\thanks{Department of Mathematics, University of Oslo, and Center for Biomedical Computing, Simula Research Laboratory. Email: \texttt{mikael.mortensen@gmail.com}.} and Hans Petter Langtangen\thanks{Center for Biomedical Computing, Simula Research Laboratory, and Department of Informatics, University of Oslo. Email: \texttt{hpl@simula.no}.}}
-%\date{}							% Activate to display a given date or no date
+\journal{Computer Physics Communications}
 
 \begin{document}
-\maketitle
 
-\section*{Abstract}
+\begin{frontmatter}
+
+%% Title, authors and addresses
+
+%% use the tnoteref command within \title for footnotes;
+%% use the tnotetext command for the associated footnote;
+%% use the fnref command within \author or \address for footnotes;
+%% use the fntext command for the associated footnote;
+%% use the corref command within \author for corresponding author footnotes;
+%% use the cortext command for the associated footnote;
+%% use the ead command for the email address,
+%% and the form \ead[url] for the home page:
+%%
+%% \title{Title\tnoteref{label1}}
+%% \tnotetext[label1]{}
+%% \author{Name\corref{cor1}\fnref{label2}}
+%% \ead{email address}
+%% \ead[url]{home page}
+%% \fntext[label2]{}
+%% \cortext[cor1]{}
+%% \address{Address\fnref{label3}}
+%% \fntext[label3]{}
+
+\title{High performance Python for direct numerical simulations of turbulent flows}
+
+%% use optional labels to link authors explicitly to addresses:
+%% \author[label1,label2]{<author name>}
+%% \address[label1]{<address>}
+%% \address[label2]{<address>}
+
+\author[a,b]{Mikael Mortensen\corref{author}}
+\address[a]{University of Oslo, Moltke Moes vei 35, 0851 Oslo, Norway}
+\address[b]{Center for Biomedical Computing at Simula Research Laboratory, P.O.Box 134, N-1325 Lysaker, Norway}
+\author[a,b]{Hans Petter Langtangen}
+
+\cortext[author] {Corresponding author.\\\textit{E-mail address:} mikaem@math.uio.no}
+
+\newcommand{\hpl}[1]{({\bf hpl comment:} \emph{#1})}
+
+
+\bibliographystyle{plain}
+
+%\author{Mikael Mortensen\thanks{Department of Mathematics, University of Oslo, and Center for Biomedical Computing, Simula Research Laboratory. Email: \texttt{mikael.mortensen@gmail.com}.} and Hans Petter Langtangen\thanks{Center for Biomedical Computing, Simula Research Laboratory, and Department of Informatics, University of Oslo. Email: \texttt{hpl@simula.no}.}}
+%\date{}							% Activate to display a given date or no date
+
+
+\begin{abstract}
 Direct Numerical Simulations (DNS) of the Navier Stokes equations is an
 invaluable research tool in fluid dynamics. Still, there are few publicly
 available research codes and, due to the heavy number crunching implied,
@@ -181,6 +238,17 @@ KAUST supercomputing laboratory,
 and we are able to show very good scaling up to several thousand cores.
 
 A very important part of the implementation is the mesh decomposition (we implement both slab and pencil decompositions) and 3D parallel Fast Fourier Transforms (FFT). The mesh decomposition and FFT routines have been implemented in Python using serial FFT routines (either \inpyth{numpy.fft}, \inpyth{pyfftw} or any other serial FFT module), \inpyth{numpy} array manipulations and with MPI communications handled by \inpyth{mpi4py}. We show how we are able to execute a 3D parallel FFT in Python for a slab mesh decomposition using 4 lines of compact Python code, for which the parallel performance on Shaheen is found to be slightly better than similar routines provided through the FFTW library. For a pencil mesh decomposition 7 lines of code is required to execute a transform.
+
+
+\end{abstract}
+
+\begin{keyword}
+%% keywords here, in the form: keyword \sep keyword
+CFD \sep Python \sep Navier-Stokes \sep Cython \sep DNS \sep Turbulence \sep Slab \sep Pencil \sep FFT \sep MPI
+
+\end{keyword}
+
+\end{frontmatter}
 
 \section{Introduction}
 %\subsection{}
@@ -231,7 +299,7 @@ details that are needed.
 
 %Because of the massive amounts of number crunching involved, DNS solvers are usually implemented in high entry-level, low-level languages like Fortran/Fortran90 or C/C++.
 
-Python is a language that over the last two decades has grown very popular in the scientific computing community. A wide range of well established, ``gold standard'' scientific libraries in Fortran and C have been wrapped in Python, making them directly accessible just as commands in MATLAB. There is little overhead in calling low-level Fortran and C/C++functions from Python, and the computational speed obtained in a few lines of code may easily compete with hundreds of compiled lines of Fortran or C code. It is important new knowledge in the CFD community if flow codes can be developed with comfort and ease in Python without sacrificing much computational efficiency.
+Python is a language that over the last two decades has grown very popular in the scientific computing community. A wide range of well established, ``gold standard'' scientific libraries in Fortran and C have been wrapped in Python, making them directly accessible just as commands in MATLAB. There is little overhead in calling low-level Fortran and C/C++ functions from Python, and the computational speed obtained in a few lines of code may easily compete with hundreds of compiled lines of Fortran or C code. It is important new knowledge in the CFD community if flow codes can be developed with comfort and ease in Python without sacrificing much computational efficiency.
 
 There are already several examples on successful use of Python for
 high-performance parallel scientific computing. The sophisticated
@@ -240,7 +308,7 @@ C++, but most application developers are writing FEniCS-based solvers
 directly in Python, never actually finding themselves in need of
 writing longer C++ code and firing up a compiler. For large scale
 applications the developed Python solvers are usually equally fast as
-their C++ counterparts, because most of the computing time is usually
+their C++ counterparts, because most of the computing time is
 spent within the low-level wrapped C++ functions that perform the
 costly linear algebra operations \cite{Mortensen2015}.
 GPAW \cite{gpaw05} is a code devoted
@@ -268,7 +336,7 @@ Our DNS implementation is based on a pseudo-spectral Fourier-Galerkin method \ci
  \bm{u}(\bm{x}+2\pi \bm{e}^i, t) &= \bm{u}(\bm{x}, t), \quad \text{for }\, i=1,2,3,\\
  \bm{u}(\bm{x}, 0) &= \bm{u}_0(\bm{x})
 \end{align}
-where $\bm{u}(\bm{x}, t)$ is the velocity vector, $\bm{\omega}=\nabla \times \bm{u}$ the vorticity vector, $\bm{e}^i$ the Cartesian unit vectors, and the modified pressure $P=p+\bm{u}\cdot \bm{u}/2$, where $p$ is the regular pressure normalized by the constant density. The equations are periodic in all three spatial directions. If all three directions now are discretized uniformly in space using a structured computational mesh with $N$ points in each direction, the mesh points can be represented as
+where $\bm{u}(\bm{x}, t)$ is the velocity vector, $\bm{\omega}=\nabla \times \bm{u}$ the vorticity vector, $\bm{e}^i$ the Cartesian unit vectors, and the modified pressure $P=p+\bm{u}\cdot \bm{u}/2$, where $p$ is the regular pressure normalized by the constant density. The equations are periodic in all three spatial directions. If all three directions now are discretized uniformly in space using a structured computational mesh with $N$ points in each direction, the mesh points can be represented as\footnote{Different domains lengths and number of points in each direction are trivially implemented, and we use a uniform mesh here for simplicity.}
 \begin{equation}
 \bm{x} = (x, y, z) = \left\{(x_i, y_j, z_k) = \left( \frac{2\pi i}{N}, \frac{2\pi j}{N}, \frac{2\pi k}{N} \right): \, i,j,k \in 0,\ldots, N-1 \right\}.
 \label{eq:realmesh}
@@ -353,7 +421,7 @@ The matrix \inpyth{X} has dimensions \inpyth{(3, N, N, N)}. Since the Navier Sto
 
 The velocity field to be transformed is real, and the discrete Fourier transform of a real sequence has the property that $\hat{\bm{u}}_k = \hat{\bm{u}}_{N-k}^*$, where $^*$ denotes the complex conjugate. As such, it is sufficient to use $N/2+1$ Fourier coefficients in the first transformed direction, leading to a transformed wavenumber mesh of size $(N/2+1)N^2$. The odd number of wavenumbers does not lead to any issues for the serial version of the code or for the slab decomposition. However, for the pencil decomposition it requires special attention, see Section \ref{pencil2D}.
 
-In our code the real transform is taken in the final $z$ direction and the wavenumbers $\bm{k}=(k_x, k_y, k_z)$ stored on the transformed mesh thus has ordering as used by the FFT routines provided by \texttt{numpy.fft} or \texttt{pyfftw}:
+In our code the real transform is taken in the $z$ direction and the wavenumbers $\bm{k}=(k_x, k_y, k_z)$ stored on the transformed mesh thus has ordering as used by the FFT routines provided by \texttt{numpy.fft} or \texttt{pyfftw}:
 
 \begin{align}
   \bm{k} = [&(0, \ldots, N/2-1, -N/2, -N/2+1, \ldots, -1), \notag \\
@@ -501,8 +569,9 @@ K = array(meshgrid(kx, ky[rank*Np:(rank+1)*Np], kz,
 \end{python}
 In general, using \inpyth{num_processes} CPUs, each CPU gets responsibility for \inpyth{Np = N/num_processes} two-dimensional slices and the physical mesh is simply decomposed along the first index. The wavenumber mesh, on the other hand, is split along the second index. The reason for this choice is that the $k_x$ direction is the last direction to be transformed by the three consecutive FFTs and for this operation the data structures will need to be aligned in planes normal to the $k_y$ direction. This becomes obvious if one considers the MPI decomposition as illustrated in Figure~\ref{fig:Slabdecomp} for the case of a physical mesh of size $8^3$ divided amongst 4 CPUs.
 
-The entire 3D parallel FFT may be implemented with preallocation of a work array to do MPI and 4 lines (the body of \inpyth{fftn_mpi/ifftn_mpi}) of Python code:
+The entire 3D parallel FFT may be implemented with preallocation of a work array to do MPI and 4 lines (the body of \inpyth{fftn_mpi/ifftn_mpi}) of Python code, see Figure \ref{fig:fftn_slab}.
 
+\begin{figure}
 \begin{python}
 # Preallocated work array for MPI
 U_mpi = empty((num_processes, Np, Np, Nf), dtype=complex)
@@ -524,6 +593,9 @@ def ifftn_mpi(fu, u):
     u[:] = irfft2(Uc_hatT, axes=(2, 1))
     return u
 \end{python}
+\caption{Three dimensional forward \inpyth{fftn_mpi} and inverse \inpyth{ifftn_mpi} FFTs implemented for the slab decomposition.}
+\label{fig:fftn_slab}
+\end{figure}
 Consider the function \inpyth{fftn_mpi}. In the first call to \inpyth{rfft2} each processor performs a
 complete two dimensional FFT in both $z$ and $y$ directions on the original real data structure \inpyth{u}
 (i.e., the inner $\mathcal{F}_{k_y}(\mathcal{F}_{k_z}(u))$ from (\ref{eq:fft})).
@@ -587,12 +659,13 @@ For massively parallel simulations the slab decomposition falls short since the 
 \label{fig:Pencildecomp}
 \end{figure}
 
-The 2D pencil decomposition strategy is illustrated in Figure~\ref{fig:Pencildecomp} for a physical computational box of size $16^3$, using 4 CPUs. The datastructures are split in the plane normal to the direction in which the FFTs are performed. That is, for the physical mesh in Figure~\ref{fig:Pencildecomp} (a) the $x-y$ plane is split up in a $2\times2$ processor mesh. Each CPU may now perform 64 ($= 8 \times 8$) real FFTs of length 16 in the $z$-direction on its own $8 \times 8 \times 16$ physical mesh. Afterwords, the complex data are laid out as shown in Figure~\ref{fig:Pencildecomp} (b). The second transform takes place in the $x$-direction, and for this to happen, data must be exchanged between processors 0 and 1 as well as 2 and 3. The datastructures must also be transformed to the shape seen in Figure~\ref{fig:Pencildecomp} (c). Each CPU may now perform the 32 ($4 \times 8$) individual 1D FFTs in the $x$-direction. The same procedure is followed to end up with datastructures aligned in the final $y$-direction, see Figure~\ref{fig:Pencildecomp} (d). However, this time processor 0 communicates with processor 2 and likewise 1 with 3. Evidently, each processor belongs to two different groups of communicators. One for communication in the $x-z$ plane (Figure~\ref{fig:Pencildecomp} (b) to (c)) and one for communication in the $x-y$ plane (Figure~\ref{fig:Pencildecomp} (c) to (d)). The MPI communicator groups and the distributed mesh are created in Python as shown below:
+The 2D pencil decomposition strategy is illustrated in Figure~\ref{fig:Pencildecomp} for a physical computational box of size $16^3$, using 4 CPUs. The datastructures are split in the plane normal to the direction in which the FFT is performed. That is, for the physical mesh in Figure~\ref{fig:Pencildecomp} (a) the $x-y$ plane is split up in a $2\times2$ processor mesh. Each CPU may now perform 64 ($= 8 \times 8$) real FFTs of length 16 in the $z$-direction on its own $8 \times 8 \times 16$ physical mesh. Afterwords, the complex data are laid out as shown in Figure~\ref{fig:Pencildecomp} (b). The second transform takes place in the $x$-direction, and for this to happen, data must be exchanged between processors 0 and 1 as well as 2 and 3. The datastructures must also be transformed to the shape seen in Figure~\ref{fig:Pencildecomp} (c). Each CPU may now perform the 32 ($4 \times 8$) individual 1D FFTs in the $x$-direction. The same procedure is followed to end up with datastructures aligned in the final $y$-direction, see Figure~\ref{fig:Pencildecomp} (d). However, this time processor 0 communicates with processor 2 and likewise 1 with 3. Evidently, each processor belongs to two different groups of communicators. One for communication in the $x-z$ plane (Figure~\ref{fig:Pencildecomp} (b) to (c)) and one for communication in the $x-y$ plane (Figure~\ref{fig:Pencildecomp} (c) to (d)). The MPI communicator groups and the distributed mesh are created in Python as shown below:
 
-\begin{minipage}{\linewidth}
+\noindent
+\begin{minipage}[l]{\textwidth}
 \begin{python}
-P1 = 2                     # CPUs in 1st direction (assigned)
-P2 = num_processes / P1    # CPUs in 2nd direction
+P1 = 2  # CPUs in 1st direction (assigned)
+P2 = num_processes / P1 # CPUs in 2nd dir
 N1 = N/P1
 N2 = N/P2
 
@@ -600,8 +673,9 @@ N2 = N/P2
 commxz = comm.Split(rank/P1)
 commxy = comm.Split(rank%P1)
 
-xzrank = commxz.Get_rank() # Local rank in xz-plane
-xyrank = commxy.Get_rank() # Local rank in xy-plane
+# Get local ranks 
+xzrank = commxz.Get_rank()
+xyrank = commxy.Get_rank()
 
 # Create the decomposed physical mesh
 x1 = slice(xzrank * N1, (xzrank+1) * N1, 1)
@@ -614,6 +688,7 @@ k1 = slice(xzrank*N1/2, (xzrank+1)*N1/2, 1)
 K = array(meshgrid(kx[k2], kx, kx[k1], indexing='ij'), dtype=int)
 \end{python}
 \end{minipage}
+
 With reference to Figure~\ref{fig:Pencildecomp}, the two communicator groups for CPU with global rank 0 is
 \inpyth{commxz} = [0, 1] and \inpyth{commxy} = [0, 2]. The decomposition contains two parameters, \inpyth{P1} and \inpyth{P2}, that are used to split up the first two indices of the physical mesh.
 For the case shown \inpyth{P1} may be either 1 or 2, in which case the second parameter \inpyth{P2}
@@ -649,17 +724,21 @@ def fftn_mpi(u, fu):
     Uc_hat_z[:] = rfft(u, axis=2)
 
     # Transform to x direction neglecting k=N/2 (Nyquist)
-    Uc_hat_x[:] = rollaxis(Uc_hat_z[:,:,:-1].reshape((N1, N2, P1, N1)),
-                           2).reshape(Uc_hat_x.shape)
+    Uc_hat_x[:] = rollaxis(Uc_hat_z[:,:,:-1]. 
+      reshape((N1, N2, P1, N1)), 2).  
+      reshape(Uc_hat_x.shape)
 
     # Communicate and do fft in x-direction
-    commxz.Alltoall([Uc_hat_x, mpitype], [Uc_hat_xr, mpitype])
+    commxz.Alltoall([Uc_hat_x, mpitype], 
+                    [Uc_hat_xr, mpitype])
     Uc_hat_x[:] = fft(Uc_hat_xr, axis=0)
 
-    # Communicate and transform to final z-direction
-    commxy.Alltoall([Uc_hat_x, mpitype], [Uc_hat_xr, mpitype])
-    Uc_hat_y[:] = rollaxis(Uc_hat_xr.reshape((P2, N2, N2, N1)),
-                           1).reshape(Uc_hat_y.shape)
+    # Communicate and transform to z-direction
+    commxy.Alltoall([Uc_hat_x, mpitype], 
+                    [Uc_hat_xr, mpitype])
+    Uc_hat_y[:] = rollaxis(Uc_hat_xr.
+      reshape((P2, N2, N2, N1)), 1).
+      reshape(Uc_hat_y.shape)
 
     fu[:] = fft(Uc_hat_y, axis=1)
     return fu
@@ -667,7 +746,7 @@ def fftn_mpi(u, fu):
 
 \subsection{Optimization}
 \label{sec:optimization}
-The implementation discussed thus far is using no more than \texttt{numpy} and \texttt{mpi4py}, and possibly \texttt{pyfftw} for faster FFTs. The FFTs represent the major computational cost of the solver, but there is also significant cost in all the elementwise operations on the structured \texttt{numpy} arrays required to build the right hand side of the Navier-Stokes equations, see the \inpyth{ComputeRHS} function. The elementwise operations, like multiply and divide, are handled by \texttt{numpy}'s universal functions (ufuncs), that are fast because they are implemented in C. However, some of the ufuncs may be inefficient due to temporary arrays that need to be created, especially for multiple-operator expressions. The most glaring example for the current solver is the cross product (used in computing convection, see Eq. (\ref{eq:curl_convection})), which is computed most straightforward though \texttt{numpy} as
+The implementation discussed thus far is using no more than \texttt{numpy} and \texttt{mpi4py}, and possibly \texttt{pyfftw} for faster FFTs. The FFTs represent the major computational cost of the solver, but there is also significant cost in all the elementwise operations on the structured \texttt{numpy} arrays required to build the right hand side of the Navier-Stokes equations, see the \inpyth{ComputeRHS} function. The elementwise operations, like multiply and divide, are handled by \texttt{numpy}'s universal functions (ufuncs), which are fast because they are implemented in C. However, some of the ufuncs may be inefficient due to temporary arrays that need to be created, especially for multiple-operator expressions. The most glaring example for the current solver is the cross product (used in computing convection, see Eq. (\ref{eq:curl_convection})), which is computed most straightforward though \texttt{numpy} as
 \begin{python}
 def cross(a, b, c):
     """c = a x b"""
@@ -684,7 +763,11 @@ For straightforward comparison, the Python solver with slab decomposition has be
 only significant difference between the solvers is that for C++, the 3D FFT computations are using the MPI communication routines that are provided directly through the FFTW library. Otherwise, everything is exectly the same. For a first direct comparison, though, we are neglecting the MPI implementation and running the Python and C++ codes in serial for the Taylor Green test case (see Section \ref{sec:verification}) for three meshes of size $(32^3, 64^3, 128^3)$. On a
 MacBook Pro with 2.8 GHz Intel Core i7 we find that the C++ code runs at (0.0092, 0.083, 0.80) seconds per time step for the three mesh sizes, whereas the pure Python solver runs at (0.013, 0.12, 1.3) seconds.\footnote{Best of 10 runs} As such we may conclude that without MPI the C++ code is approximately 30 \% faster. Considering the issue recently discussed with the cross product, we are all in all quite happy with the performance of the Python solver.
 
-Fortunately, many different strategies are known for speeding up pure \texttt{numpy} code, e.g.,  \inpyth{numba}, \inpyth{numexpr}, \inpyth{weave} and Cython. We have obtained best results for \inpyth{numba} and Cython. The \inpyth{numba} module uses just in time compilation of Python functions chosen for optimization. The advantage of using \texttt{numba} is that no compilation or installation is required by the user who never has to leave the pure Python environment. The downside is that \inpyth{numba} is difficult to install on non-standard platforms like the Blue Gene/P. Nevertheless, a \texttt{numba} optimized cross product routine may be implemented in module \inpyth{numba_module.py} and code will be generated and compiled when the module is imported.  For efficient speed-up on our structured mesh the code must be rewritten using explicit for loops
+Fortunately, many different strategies are known for speeding up pure \texttt{numpy} code, e.g.,  \inpyth{numba}, \inpyth{numexpr}, \inpyth{weave} and Cython. We have obtained best results for \inpyth{numba} and Cython. The \inpyth{numba} module uses just in time compilation of Python functions chosen for optimization. The advantage of using \texttt{numba} is that no compilation or installation is required by the user who never has to leave the pure Python environment. The downside is that \inpyth{numba} is difficult to install on non-standard platforms like the Blue Gene/P. Nevertheless, a \texttt{numba} optimized cross product routine may be implemented in module \inpyth{numba_module.py} and code will be generated and compiled when the module is imported.  For efficient speed-up on our structured mesh the code must be rewritten using explicit for loops as seen in Figure \ref{fig:numba}. The \texttt{numba} cross product may now be used directly in place of the pure Python version with no further modifications.
+
+Cython has gained much momentum in recent years and is usually the obvious choice for high performance computing. Using Cython, the cross product should be implemented like for \inpyth{numba}, through explicit for loops which are translated to efficient C code to be highly optimized by the compiler. As shown in Figure \ref{fig:cython} a module called \inpyth{cython_module.pyx} may be created and compiled using Python's standard installation utilities (\href{http://docs.cython.org/src/reference/compilation.html}{distutils}\footnote{\texttt{http://docs.cython.org/src/reference/compilation.html}}).
+
+\begin{minipage}{\linewidth}
 \begin{python}
 numba_module.py:
 from numba import jit, int64, int32, uint8
@@ -706,10 +789,10 @@ def cross(a, b, c):
                 c[2,i,j,k] = a0*b1 - a1*b0
     return c
 \end{python}
-The \texttt{numba} cross product may now be used directly in place of the pure Python version with no further modifications.
+\captionof{figure}{Numba implementation of the cross product.}\label{fig:numba}
+\end{minipage}
 
-Cython has gained much momentum in recent years and is usually the obvious choice for high performance computing. Using Cython, the cross product should be implemented like for \inpyth{numba}, through explicit for loops which are translated to efficient C code to be highly optimized by the compiler. A module called \inpyth{cython_module.pyx} may be created and compiled using Python's standard installation utilities (\href{http://docs.cython.org /src/reference/compilation.html}{distutils}\footnote{\texttt{http://docs.cython.org /src/reference/compilation.html}}):
-
+\begin{minipage}{\linewidth}
 \begin{python}
 cython_module.pyx:
 #cython: boundscheck=False
@@ -737,9 +820,10 @@ def cross(np.ndarray[real_t, ndim=4] a,
                 c[2,i,j,k] = a0*b1 - a1*b0
 
 \end{python}
-Cython generated modules may be imported into Python and the \inpyth{cross} function from Cython may be used directly in place of the pure Python version.
-
-The Cython code for the cross product runs at about the same speed as \inpyth{numba} and approximately 3 times faster than pure \texttt{numpy} for a mesh of size $128^3$. When Cython is used to compute all elementwise operations that generate the right hand side of the Navier-Stokes equations, the Taylor Green test case runs at (0.0090, 0.080, 0.82) seconds per time step.\footnote{Best of 10 runs} In other words, with a few quick Cython wrappers we have a Python solver that is comparable in speed to its low-level counterpart in C++. And this solver is scripted and operated in a comfortable interactive environment where postprocessing and plotting may be performed from a commandline shell.
+\captionof{figure}{Cython implementation of the cross product.}\label{fig:cython}
+\end{minipage}
+\vskip 1ex
+Cython generated modules may be imported into Python and the \inpyth{cross} function from Cython may be used directly in place of the pure Python version. The Cython code for the cross product runs at about the same speed as \inpyth{numba} and approximately 3 times faster than pure \texttt{numpy} for a mesh of size $128^3$. When Cython is used to compute all elementwise operations that generate the right hand side of the Navier-Stokes equations, the Taylor Green test case runs at (0.0090, 0.080, 0.82) seconds per time step.\footnote{Best of 10 runs} In other words, with a few quick Cython wrappers we have a Python solver that is comparable in speed to its low-level counterpart in C++. And this solver is scripted and operated in a comfortable interactive environment where postprocessing and plotting may be performed from a commandline shell.
 
 \section{Parallel performance}
 Our Python based DNS solver has been tested on the Shaheen computer at the KAUST Supercomputing Laboratory. The primary computational resource of Shaheen consists of 16 racks of Blue Gene/P. Each rack contains 1024 quad-core, 32-bit, 850 MHz PowerPC compute nodes, for a total of 65,536 compute cores. Each node is equipped with 4GB of system memory, providing a total 64TB of distributed memory across the resource. Blue Gene nodes are interconnected by a three-dimensional point-to-point ``torus'' network used for general-purpose message-passing and multicast communication.
@@ -830,29 +914,29 @@ The FFTW library is using a slab mesh decomposition.
 %The slab decomposition is seen to be more efficient than pencil, which is generally in agreement with previous studies (see, e.g., \cite{pekurovsky2012}). We see also that the C++ version is faster than the corresponding Python routine (slab) by approximately 10 \% for the lowest number of processors (64). However, the strong scaling of the Python 4-liner slab (see \inpyth{fftn_mpi}) is better and the Python version is even faster by the time we reach the highest number of allowed processors for this case (512). The pencil transform achieves good, but not perfect, speedup all the way up to 4096 processors. The results for the pencil transforms depend on the parameter P1, set to determine how the two first indices of the computational mesh are distributed. We have used $P1 = (8, 16, 16, 32, 32, 64, 64)$ and not optimized further.
 
 
-\begin{figure}
+\begin{figure}[ht!]
 \centering
-\includegraphics[scale=0.6]{figs/weak_scaling_fft_1024.png}
+\includegraphics[scale=0.48]{figs/weak_scaling_fft_1024.png}
 \caption{Weak scaling of forward and inverse FFTs. The Python results are for pure \texttt{numpy}, \texttt{mpi4py}, \texttt{pyfftw} and C++ is using slab decomposition with MPI communication performed through the FFTW library.}
 \label{fig:weak_FFT_scaling}
 \end{figure}
 
 The results are assembled as the fastest of 10 forward and inverse FFTs (only execution time, not the setup), and the results
 are scaled by $N^3 \log_2N$ and plotted in Figure \ref{fig:weak_FFT_scaling}. Both slab and pencil versions of the Python 3D FFTs show excellent scaling,
-and only start to trail off the ideal curve for the largest mesh size. The C++ solver can be seen to be about $10 \%$ faster than Python (slab) for the smallest number of processors (64), but evidently the difference diminishes with increasing number of cores. In other words, the Python 4-liners (see \inpyth{fftn_mpi/ifftn_mpi} in Appendix) that embody the complete execution of the 3D FFT with MPI scales better than the 3D FFT routines with MPI provided by FFTW.  
+and only start to trail off the ideal curve for the largest mesh size. The C++ solver can be seen to be about $10 \%$ faster than Python (slab) for the smallest number of processors (64), but evidently the difference diminishes with increasing number of cores. In other words, the Python 4-liners (see Figure \ref{fig:fftn_slab}) that embody the complete execution of the 3D FFT with MPI scales better than the 3D FFT routines with MPI provided by FFTW.  
 
 From Figure \ref{fig:weak_FFT_scaling} we also observe that the slab decomposition is more efficient than pencil, which is generally in agreement with previous studies (see, e.g., \cite{pekurovsky2012}). Note that the pencil computations use twice as many cores for the same mesh size as the slab computations. As such the two methods would fall on the same line in Figure.~\ref{fig:weak_FFT_scaling} if they were equally efficient. 
 
 Turning now to the complete solver, we run the Taylor Green test case for 100 time steps on the same mesh as used for the weak scaling of the FFTs. Figure \ref{fig:Weak_scaling} shows the computing times for one such time step (the fastest) for both the pure Python solver \ref{fig:weak_scaling_shaheen} and the version optimized with Cython \ref{fig:weak_scaling_shaheen_opt}.
 The figures clearly show how the Cython optimization leads to a solver that performs as well as C++ for the entire range of processors. Both the slab and pencil optimized implementations are seen to be approximately $20 \% $ faster than their pure Python counterparts, but there is generally no difference in scaling performance. Like for the pure FFT test, the scaling performance of the Python solver is actually slightly better  than C++, and this leads to the optimized Python solver actually being the fastest for 1024 processors.
 
-\begin{figure}
+\begin{figure}[ht!]
 \subfigure[Pure Python solver (\texttt{numpy}, \texttt{mpi4py}, \texttt{pyfftw})]{
-\includegraphics[scale=0.48]{figs/weak_scaling_shaheen_numpy_noopt.png}
+\includegraphics[scale=0.44]{figs/weak_scaling_shaheen_numpy_noopt.png}
 \label{fig:weak_scaling_shaheen}
 }
 \subfigure[Python solver optimized with Cython]{
-\includegraphics[scale=0.48]{figs/weak_scaling_shaheen_numpy_opt.png}
+\includegraphics[scale=0.44]{figs/weak_scaling_shaheen_numpy_opt.png}
 \label{fig:weak_scaling_shaheen_opt}
 }
 \caption{Weak scaling of DNS solver. The slab decompositions are using $4 \cdot 64^3$ nodes per core, whereas the pencil decomposition uses $2 \cdot 64^3 $. The C++ solver uses slab decomposition with MPI communication performed through the FFTW library. The C++ results are the same in \subref{fig:weak_scaling_shaheen} and \subref{fig:weak_scaling_shaheen_opt}.}
@@ -862,9 +946,9 @@ The figures clearly show how the Cython optimization leads to a solver that perf
 \subsubsection{Strong scaling}
 \label{sec:strong_scaling}
 
-\begin{figure}
+\begin{figure}[ht!]
 \centering
-\includegraphics[scale=0.6]{figs/strong_scaling_fft_512.png}
+\includegraphics[scale=0.44]{figs/strong_scaling_fft_512.png}
 \caption{Strong scaling of forward and inverse FFTs. The Python results are for pure \texttt{numpy}, \texttt{mpi4py}, \texttt{pyfftw} and C++ is using slab decomposition with MPI communication performed through the FFTW library.}
 \label{fig:strong_FFT_scaling}
 \end{figure}
@@ -885,13 +969,13 @@ Figure \ref{fig:Strong_scaling} shows the performance of the complete solvers. T
 to more than match the performance of the C++ solver for this particular
 case. Good scaling is observed for the pencil solver all the way up to 4096 processors.
 
-\begin{figure}
+\begin{figure}[ht!]
 \subfigure[Pure Python solver (\texttt{numpy}, \texttt{mpi4py}, \texttt{pyfftw})]{
-\includegraphics[scale=0.48]{figs/strong_scaling_shaheen_noopt_512.png}
+\includegraphics[scale=0.44]{figs/strong_scaling_shaheen_noopt_512.png}
 \label{fig:strong_scaling_shaheen}
 }
 \subfigure[Python solver optimized with Cython]{
-\includegraphics[scale=0.48]{figs/strong_scaling_shaheen_opt_512.png}
+\includegraphics[scale=0.44]{figs/strong_scaling_shaheen_opt_512.png}
 \label{fig:strong_scaling_shaheen_opt}
 }
 \caption{Strong scaling of the  DNS solver. The C++ solver uses slab decomposition with MPI communication performed through the FFTW library. The C++ results are the same in \subref{fig:strong_scaling_shaheen} and \subref{fig:strong_scaling_shaheen_opt}.}
@@ -1009,6 +1093,5 @@ if rank == 0:
     assert round(k - 0.124953117517, 7) == 0
 
 \end{python}
-
 
 \end{document}
