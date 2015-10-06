@@ -69,6 +69,7 @@
 
 % \biboptions{}
 
+\graphicspath{{./figs/}}
 \usepackage{listings}
 \lstset{basicstyle=\ttfamily\footnotesize,
 numbers=none,
@@ -916,7 +917,7 @@ The FFTW library is using a slab mesh decomposition.
 
 \begin{figure}[ht!]
 \centering
-\includegraphics[scale=0.48]{figs/weak_scaling_fft_1024.png}
+\includegraphics[scale=0.48]{weak_scaling_fft_1024.png}
 \caption{Weak scaling of forward and inverse FFTs. The Python results are for pure \texttt{numpy}, \texttt{mpi4py}, \texttt{pyfftw} and C++ is using slab decomposition with MPI communication performed through the FFTW library.}
 \label{fig:weak_FFT_scaling}
 \end{figure}
@@ -932,11 +933,11 @@ The figures clearly show how the Cython optimization leads to a solver that perf
 
 \begin{figure}[ht!]
 \subfigure[Pure Python solver (\texttt{numpy}, \texttt{mpi4py}, \texttt{pyfftw})]{
-\includegraphics[scale=0.44]{figs/weak_scaling_shaheen_numpy_noopt.png}
+\includegraphics[scale=0.44]{weak_scaling_shaheen_numpy_noopt.png}
 \label{fig:weak_scaling_shaheen}
 }
 \subfigure[Python solver optimized with Cython]{
-\includegraphics[scale=0.44]{figs/weak_scaling_shaheen_numpy_opt.png}
+\includegraphics[scale=0.44]{weak_scaling_shaheen_numpy_opt.png}
 \label{fig:weak_scaling_shaheen_opt}
 }
 \caption{Weak scaling of DNS solver. The slab decompositions are using $4 \cdot 64^3$ nodes per core, whereas the pencil decomposition uses $2 \cdot 64^3 $. The C++ solver uses slab decomposition with MPI communication performed through the FFTW library. The C++ results are the same in \subref{fig:weak_scaling_shaheen} and \subref{fig:weak_scaling_shaheen_opt}.}
@@ -948,7 +949,7 @@ The figures clearly show how the Cython optimization leads to a solver that perf
 
 \begin{figure}[ht!]
 \centering
-\includegraphics[scale=0.44]{figs/strong_scaling_fft_512.png}
+\includegraphics[scale=0.44]{strong_scaling_fft_512.png}
 \caption{Strong scaling of forward and inverse FFTs. The Python results are for pure \texttt{numpy}, \texttt{mpi4py}, \texttt{pyfftw} and C++ is using slab decomposition with MPI communication performed through the FFTW library.}
 \label{fig:strong_FFT_scaling}
 \end{figure}
@@ -971,11 +972,11 @@ case. Good scaling is observed for the pencil solver all the way up to 4096 proc
 
 \begin{figure}[ht!]
 \subfigure[Pure Python solver (\texttt{numpy}, \texttt{mpi4py}, \texttt{pyfftw})]{
-\includegraphics[scale=0.44]{figs/strong_scaling_shaheen_noopt_512.png}
+\includegraphics[scale=0.44]{strong_scaling_shaheen_noopt_512.png}
 \label{fig:strong_scaling_shaheen}
 }
 \subfigure[Python solver optimized with Cython]{
-\includegraphics[scale=0.44]{figs/strong_scaling_shaheen_opt_512.png}
+\includegraphics[scale=0.44]{strong_scaling_shaheen_opt_512.png}
 \label{fig:strong_scaling_shaheen_opt}
 }
 \caption{Strong scaling of the  DNS solver. The C++ solver uses slab decomposition with MPI communication performed through the FFTW library. The C++ results are the same in \subref{fig:strong_scaling_shaheen} and \subref{fig:strong_scaling_shaheen_opt}.}
