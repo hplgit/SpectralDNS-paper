@@ -5,7 +5,7 @@
 %% completed and which will give the correct layout in the
 %% preprint and the journal.
 %% The `elsarticle' style is used and more information on this style
-%% can be found at 
+%% can be found at
 %% http://www.elsevier.com/wps/find/authorsview.authors/elsarticle.
 %%
 %%
@@ -210,9 +210,10 @@ float=htpb,
 %% \address[label2]{<address>}
 
 \author[a,b]{Mikael Mortensen\corref{author}}
-\address[a]{University of Oslo, Moltke Moes vei 35, 0851 Oslo, Norway}
-\address[b]{Center for Biomedical Computing at Simula Research Laboratory, P.O.Box 134, N-1325 Lysaker, Norway}
-\author[a,b]{Hans Petter Langtangen}
+\author[b,c]{Hans Petter Langtangen}
+\address[a]{Department of Mathematics, University of Oslo, Norway}
+\address[b]{Center for Biomedical Computing at Simula Research Laboratory, N-1325 Lysaker, Norway}
+\address[c]{Department of Informatics, University of Oslo, Norway}
 
 \cortext[author] {Corresponding author.\\\textit{E-mail address:} mikaem@math.uio.no}
 
@@ -387,7 +388,7 @@ Note that the transformed velocity components are coupled through the nonlinear 
 
 The pseudo-spectral label arises from the treatment of the convective term, which is computed by first transforming the velocity and vorticity to physical space, performing the cross product, and then transforming the vector ${(\bm{u}  \times  \bm{\omega})}$  back to Fourier space. The operation requires 2 inverse transforms (velocity and vorticity) and 1 forward transform for each of the three vector components, 9 all together. This is the only operation that requires MPI communication and it is typically the most computationally extensive part of a pseudo-spectral DNS solver.
 
-The time integration of (\ref{eq:NSfinal}) is performed using an explicit method. Canuto et~al. \cite{canuto1988} provides a good discussion on many different integrators for these equations, and in the Appendix we have used a fourth-order Runge-Kutta method. For the DNS solver described here an explicit integrator is reasonable because the time step by physical measures is required to be small in order to resolve all temporal scales in the flow. And by resolving these scales the integrator is usually well within stability limits as dictated by the numerical scheme. In other words, the CFL number will usually be required to be much lower than 1 in order to resolve the temporal scales. 
+The time integration of (\ref{eq:NSfinal}) is performed using an explicit method. Canuto et~al. \cite{canuto1988} provides a good discussion on many different integrators for these equations, and in the Appendix we have used a fourth-order Runge-Kutta method. For the DNS solver described here an explicit integrator is reasonable because the time step by physical measures is required to be small in order to resolve all temporal scales in the flow. And by resolving these scales the integrator is usually well within stability limits as dictated by the numerical scheme. In other words, the CFL number will usually be required to be much lower than 1 in order to resolve the temporal scales.
 
 \section{Implementation}
 
@@ -471,7 +472,7 @@ U = ifftn_mpi(U_hat, U)
 \end{python}
 For high performance, it is key that the Python code relies on \emph{in-place}
 modifications of pre-allocated arrays to avoid unnecessary allocation of
-large temporary arrays (which often arises from \texttt{numpy} code with basic array arithmetics). 
+large temporary arrays (which often arises from \texttt{numpy} code with basic array arithmetics).
 Each of the functions above takes the result array (\texttt{U\_hat} or
 \texttt{U}) as argument, fill this array with values and returns the
 array to the calling code. A commonly applied convention in
@@ -613,8 +614,8 @@ operation, where the \inpyth{mpitype} is a placeholder for either \inpyth{MPI.F_
 up for the final FFT in the $x$-direction. The \inpyth{ifftn_mpi} routine is basically the inverse of the
 forward transform and its implementation should be straightforward to follow.
 
-Only one explicit global pre-allocated complex work array (\inpyth{U_mpi[num_processes, Np, Np, N/2+1]}) is needed for the \inpyth{Alltoall} routine in the three-dimensional FFT. The transform routines of \inpyth{pyfftw} maintain their own work arrays and \inpyth{Uc_hatT} and \inpyth{Uc_hat} above actually point to this internal data storage. Alternatively, the forward data transfer may be 
-performed completely without explicit work arrays using the in-place \inpyth{Sendrecv_replace} instead of 
+Only one explicit global pre-allocated complex work array (\inpyth{U_mpi[num_processes, Np, Np, N/2+1]}) is needed for the \inpyth{Alltoall} routine in the three-dimensional FFT. The transform routines of \inpyth{pyfftw} maintain their own work arrays and \inpyth{Uc_hatT} and \inpyth{Uc_hat} above actually point to this internal data storage. Alternatively, the forward data transfer may be
+performed completely without explicit work arrays using the in-place \inpyth{Sendrecv_replace} instead of
 \inpyth{Alltoall}, along with transpose operations. This is easily implemented, but, since the method has been found slightly slower, details are not shown here.
 
 \begin{figure}[t!]
@@ -674,7 +675,7 @@ N2 = N/P2
 commxz = comm.Split(rank/P1)
 commxy = comm.Split(rank%P1)
 
-# Get local ranks 
+# Get local ranks
 xzrank = commxz.Get_rank()
 xyrank = commxy.Get_rank()
 
@@ -725,17 +726,17 @@ def fftn_mpi(u, fu):
     Uc_hat_z[:] = rfft(u, axis=2)
 
     # Transform to x direction neglecting k=N/2 (Nyquist)
-    Uc_hat_x[:] = rollaxis(Uc_hat_z[:,:,:-1]. 
-      reshape((N1, N2, P1, N1)), 2).  
+    Uc_hat_x[:] = rollaxis(Uc_hat_z[:,:,:-1].
+      reshape((N1, N2, P1, N1)), 2).
       reshape(Uc_hat_x.shape)
 
     # Communicate and do fft in x-direction
-    commxz.Alltoall([Uc_hat_x, mpitype], 
+    commxz.Alltoall([Uc_hat_x, mpitype],
                     [Uc_hat_xr, mpitype])
     Uc_hat_x[:] = fft(Uc_hat_xr, axis=0)
 
     # Communicate and transform to z-direction
-    commxy.Alltoall([Uc_hat_x, mpitype], 
+    commxy.Alltoall([Uc_hat_x, mpitype],
                     [Uc_hat_xr, mpitype])
     Uc_hat_y[:] = rollaxis(Uc_hat_xr.
       reshape((P2, N2, N2, N1)), 1).
@@ -883,29 +884,29 @@ decomposition may still use many more. The performance of the FFTs is compared t
   int N = pow(static_cast<int>(2), 9);
   ptrdiff_t alloc_local, local_n0, local_0_start, local_n1, local_1_start
   fftwf_plan rfftn, irfftn;
-  
-  alloc_local = fftw_mpi_local_size_3d_transposed(N, N, N/2+1, 
+
+  alloc_local = fftw_mpi_local_size_3d_transposed(N, N, N/2+1,
                          MPI::COMM_WORLD, &local_n0, &local_0_start,
                          &local_n1, &local_1_start);
-                         
+
   vector<precision> U(2*alloc_local);
   vector<complex<precision> > U_hat(alloc_local);
-  
-  rfftn = fftwf_mpi_plan_dft_r2c_3d(N, N, N, U.data(), 
-                   reinterpret_cast<fftwf_complex*>(U_hat.data()), 
+
+  rfftn = fftwf_mpi_plan_dft_r2c_3d(N, N, N, U.data(),
+                   reinterpret_cast<fftwf_complex*>(U_hat.data()),
                    MPI::COMM_WORLD, FFTW_MPI_TRANSPOSED_OUT);
-                   
-  irfftn = fftwf_mpi_plan_dft_c2r_3d(N, N, N, 
-                   reinterpret_cast<fftwf_complex*>(U_hat.data()),  
-                   U.data(), MPI::COMM_WORLD, FFTW_MPI_TRANSPOSED_IN);  
-                   
+
+  irfftn = fftwf_mpi_plan_dft_c2r_3d(N, N, N,
+                   reinterpret_cast<fftwf_complex*>(U_hat.data()),
+                   U.data(), MPI::COMM_WORLD, FFTW_MPI_TRANSPOSED_IN);
+
   // Execute forward and inverse transforms
-  fftwf_mpi_execute_dft_r2c( rfftn, U.data(), 
-                reinterpret_cast<fftwf_complex*>(U_hat.data()));     
-  fftwf_mpi_execute_dft_c2r(irfftn, 
+  fftwf_mpi_execute_dft_r2c( rfftn, U.data(),
+                reinterpret_cast<fftwf_complex*>(U_hat.data()));
+  fftwf_mpi_execute_dft_c2r(irfftn,
                 reinterpret_cast<fftwf_complex*>(U_hat.data()), U.data());
-                
-  // Scale the inverse FFT  
+
+  // Scale the inverse FFT
   for (int k=0; k<U.size(); k++)
      U[k] /= tot;
 
@@ -924,9 +925,9 @@ The FFTW library is using a slab mesh decomposition.
 
 The results are assembled as the fastest of 10 forward and inverse FFTs (only execution time, not the setup), and the results
 are scaled by $N^3 \log_2N$ and plotted in Figure \ref{fig:weak_FFT_scaling}. Both slab and pencil versions of the Python 3D FFTs show excellent scaling,
-and only start to trail off the ideal curve for the largest mesh size. The C++ solver can be seen to be about $10 \%$ faster than Python (slab) for the smallest number of processors (64), but evidently the difference diminishes with increasing number of cores. In other words, the Python 4-liners (see Figure \ref{fig:fftn_slab}) that embody the complete execution of the 3D FFT with MPI scales better than the 3D FFT routines with MPI provided by FFTW.  
+and only start to trail off the ideal curve for the largest mesh size. The C++ solver can be seen to be about $10 \%$ faster than Python (slab) for the smallest number of processors (64), but evidently the difference diminishes with increasing number of cores. In other words, the Python 4-liners (see Figure \ref{fig:fftn_slab}) that embody the complete execution of the 3D FFT with MPI scales better than the 3D FFT routines with MPI provided by FFTW.
 
-From Figure \ref{fig:weak_FFT_scaling} we also observe that the slab decomposition is more efficient than pencil, which is generally in agreement with previous studies (see, e.g., \cite{pekurovsky2012}). Note that the pencil computations use twice as many cores for the same mesh size as the slab computations. As such the two methods would fall on the same line in Figure.~\ref{fig:weak_FFT_scaling} if they were equally efficient. 
+From Figure \ref{fig:weak_FFT_scaling} we also observe that the slab decomposition is more efficient than pencil, which is generally in agreement with previous studies (see, e.g., \cite{pekurovsky2012}). Note that the pencil computations use twice as many cores for the same mesh size as the slab computations. As such the two methods would fall on the same line in Figure.~\ref{fig:weak_FFT_scaling} if they were equally efficient.
 
 Turning now to the complete solver, we run the Taylor Green test case for 100 time steps on the same mesh as used for the weak scaling of the FFTs. Figure \ref{fig:Weak_scaling} shows the computing times for one such time step (the fastest) for both the pure Python solver \ref{fig:weak_scaling_shaheen} and the version optimized with Cython \ref{fig:weak_scaling_shaheen_opt}.
 The figures clearly show how the Cython optimization leads to a solver that performs as well as C++ for the entire range of processors. Both the slab and pencil optimized implementations are seen to be approximately $20 \% $ faster than their pure Python counterparts, but there is generally no difference in scaling performance. Like for the pure FFT test, the scaling performance of the Python solver is actually slightly better  than C++, and this leads to the optimized Python solver actually being the fastest for 1024 processors.
@@ -957,7 +958,7 @@ The figures clearly show how the Cython optimization leads to a solver that perf
 Strong scaling over a wide range of processors is usually more challenging
 to prove than weak, in our case partly because the efficiency of the FFT routines
 depends on the length of the datastructures and how well they fit into
-memory. Nevertheless, we have performed strong scaling tests of the FFTs and the complete solvers using a computational box of size $512^3$. 
+memory. Nevertheless, we have performed strong scaling tests of the FFTs and the complete solvers using a computational box of size $512^3$.
 
 Isolating first the FFTs we plot in Figure
 \ref{fig:strong_FFT_scaling} the computing time of one forward and inverse FFT, for both the pencil and slab decompositions and, as for the weak scaling, compare it to a C++ version that is using FFTW. The number of
