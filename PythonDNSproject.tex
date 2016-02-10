@@ -5,7 +5,7 @@
 %% completed and which will give the correct layout in the
 %% preprint and the journal.
 %% The `elsarticle' style is used and more information on this style
-%% can be found at 
+%% can be found at
 %% http://www.elsevier.com/wps/find/authorsview.authors/elsarticle.
 %%
 %%
@@ -220,9 +220,10 @@ belowcaptionskip=\belowtitleskip}
 %% \address[label2]{<address>}
 
 \author[a,b]{Mikael Mortensen\corref{author}}
-\address[a]{University of Oslo, Moltke Moes vei 35, 0851 Oslo, Norway}
-\address[b]{Center for Biomedical Computing at Simula Research Laboratory, P.O.Box 134, N-1325 Lysaker, Norway}
-\author[a,b]{Hans Petter Langtangen}
+\author[b,c]{Hans Petter Langtangen}
+\address[a]{Department of Mathematics, University of Oslo, Norway}
+\address[b]{Center for Biomedical Computing at Simula Research Laboratory, N-1325 Lysaker, Norway}
+\address[c]{Department of Informatics, University of Oslo, Norway}
 
 \cortext[author] {Corresponding author.\\\textit{E-mail address:} mikaem@math.uio.no}
 
@@ -464,7 +465,7 @@ Note that the transformed velocity components are coupled through the nonlinear 
 
 The pseudo-spectral label arises from the treatment of the convective term, which is computed by first transforming the velocity and vorticity to physical space, performing the cross product, and then transforming the vector ${(\bm{u}  \times  \bm{\omega})}$  back to Fourier space. The operation requires 2 inverse transforms (velocity and vorticity) and 1 forward transform for each of the three vector components, 9 all together. This is the only operation that requires MPI communication and it is typically the most computationally extensive part of a pseudo-spectral DNS solver.
 
-The time integration of (\ref{eq:NSfinal}) is performed using an explicit method. Canuto et~al. \cite{canuto1988} provides a good discussion on many different integrators for these equations, and in the Appendix we have used a fourth-order Runge-Kutta method. For the DNS solver described here an explicit integrator is reasonable because the time step by physical measures is required to be small in order to resolve all temporal scales in the flow. And by resolving these scales the integrator is usually well within stability limits as dictated by the numerical scheme. In other words, the CFL number will usually be required to be much lower than 1 in order to resolve the temporal scales. 
+The time integration of (\ref{eq:NSfinal}) is performed using an explicit method. Canuto et~al. \cite{canuto1988} provides a good discussion on many different integrators for these equations, and in the Appendix we have used a fourth-order Runge-Kutta method. For the DNS solver described here an explicit integrator is reasonable because the time step by physical measures is required to be small in order to resolve all temporal scales in the flow. And by resolving these scales the integrator is usually well within stability limits as dictated by the numerical scheme. In other words, the CFL number will usually be required to be much lower than 1 in order to resolve the temporal scales.
 
 \section{Implementation}
 
@@ -788,8 +789,10 @@ Only one explicit global pre-allocated complex work array
 of pyFFTW maintain their own work arrays and \inpyth{Uc_hatT} and 
 \inpyth{Uc_hat} above actually point to this internal data storage. 
 Alternatively, the forward data transfer may be 
-performed completely without explicit work arrays using the in-place \inpyth{Sendrecv_replace} instead of 
-\inpyth{Alltoall}, along with transpose operations. This is easily implemented, but, since the method has been found slightly slower, details are not shown here.
+performed completely without explicit work arrays using the in-place 
+\inpyth{Sendrecv_replace} instead of \inpyth{Alltoall}, along with transpose 
+operations. This is easily implemented, but, since the method has been found 
+slightly slower, details are not shown here.
 
 \begin{figure*}[th!]
 \centering
@@ -878,7 +881,7 @@ N2 = N/P2
 commxz = comm.Split(rank/P1)
 commxy = comm.Split(rank%P1)
 
-# Get local ranks 
+# Get local ranks
 xzrank = commxz.Get_rank()
 xyrank = commxy.Get_rank()
 
@@ -1231,29 +1234,29 @@ decomposition.
   int N = pow(static_cast<int>(2), 9);
   ptrdiff_t alloc_local, local_n0, local_0_start, local_n1, local_1_start
   fftwf_plan rfftn, irfftn;
-  
-  alloc_local = fftw_mpi_local_size_3d_transposed(N, N, N/2+1, 
+
+  alloc_local = fftw_mpi_local_size_3d_transposed(N, N, N/2+1,
                          MPI::COMM_WORLD, &local_n0, &local_0_start,
                          &local_n1, &local_1_start);
-                         
+
   vector<precision> U(2*alloc_local);
   vector<complex<precision> > U_hat(alloc_local);
-  
-  rfftn = fftwf_mpi_plan_dft_r2c_3d(N, N, N, U.data(), 
-                   reinterpret_cast<fftwf_complex*>(U_hat.data()), 
+
+  rfftn = fftwf_mpi_plan_dft_r2c_3d(N, N, N, U.data(),
+                   reinterpret_cast<fftwf_complex*>(U_hat.data()),
                    MPI::COMM_WORLD, FFTW_MPI_TRANSPOSED_OUT);
-                   
-  irfftn = fftwf_mpi_plan_dft_c2r_3d(N, N, N, 
-                   reinterpret_cast<fftwf_complex*>(U_hat.data()),  
-                   U.data(), MPI::COMM_WORLD, FFTW_MPI_TRANSPOSED_IN);  
-                   
+
+  irfftn = fftwf_mpi_plan_dft_c2r_3d(N, N, N,
+                   reinterpret_cast<fftwf_complex*>(U_hat.data()),
+                   U.data(), MPI::COMM_WORLD, FFTW_MPI_TRANSPOSED_IN);
+
   // Execute forward and inverse transforms
-  fftwf_mpi_execute_dft_r2c( rfftn, U.data(), 
-                reinterpret_cast<fftwf_complex*>(U_hat.data()));     
-  fftwf_mpi_execute_dft_c2r(irfftn, 
+  fftwf_mpi_execute_dft_r2c( rfftn, U.data(),
+                reinterpret_cast<fftwf_complex*>(U_hat.data()));
+  fftwf_mpi_execute_dft_c2r(irfftn,
                 reinterpret_cast<fftwf_complex*>(U_hat.data()), U.data());
-                
-  // Scale the inverse FFT  
+
+  // Scale the inverse FFT
   for (int k=0; k<U.size(); k++)
      U[k] /= tot;
 
